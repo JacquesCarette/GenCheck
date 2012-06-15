@@ -99,29 +99,26 @@ Lists are instances of the Structure class, which provides the method
 to populate a structure with elements from another generator,
 and also an instance of Testable, so there are standard generators available
 (this isn't surprising because there is only one possible list shape at each rank,
-namely the list with that many elements in it).
-A default instance of Testable is provided for lists of any Testable type,a
-and Ints are Testable, so we don't have to worry about how lists are generated - yet.a
+namely the list with that many elements in it).  A default instance of Testable
+is provided for lists of any Testable type,a and Ints are Testable, so we don't
+have to worry about how lists are generated - yet.
 
 \begin{code}
 testRevIdem_1 = deepTest (propRevRevEq :: Property [Int]) 100
 \end{code}
 
-The tests are passing, but somewhat unsatisfying that we can't see the test cases. 
-So, we switch to the baseReport / deepReport functions that report all of the results,
-flagging any failed test cases with ``FAILED: ''.
-These are the same cases that were used for baseTest / deepTest,
-so we already know they will be successful, but using the Report versions
-will allow an evaluation of the quality of the test suite. 
-The report dumps a lot of data onto the screen, so it made sense to
-verify the properties worked first with the Test functions so we didn't miss
-any of the FAILED flags.
+The tests are passing, but somewhat unsatisfying that we can't see the test
+cases.  So, we switch to the baseReport / deepReport functions that report all
+of the results, flagging any failed test cases with ``FAILED: ''.  These are
+the same cases that were used for baseTest / deepTest, so we already know they
+will be successful, but using the Report versions will allow an evaluation of
+the quality of the test suite.  The report dumps a lot of data onto the screen,
+so it made sense to verify the properties worked first with the Test functions
+so we didn't miss any of the FAILED flags.
 
 \begin{code}
-
 testUnitEq_2  = baseReport (propRevUnitEq :: Property Char) 100
 testRevIdem_2 = deepReport (propRevRevEq :: Property [Int]) 100
-
 \end{code}
 
 What happens when one or more test cases fail?  Let's create a failing property,
@@ -133,30 +130,25 @@ propRevEqNot :: (Eq a) => Property [a]
 propRevEqNot xs =  revList xs == xs
 
 testRevEqNot_1 =  deepTest (propRevEqNot :: Property [Int]) 100 -- should fail
-
 \end{code}
 
 We also see that *every* other case failed too - maybe we shouldn't print out
 all the failures!  This is where using deepCheck comes in handy - it stops
 after the first failure case.
-\gordon{Except that it's not implemented yet, and just does a Test again ???}
 
 \begin{code}
-
 testRevEqNot_2 =  deepCheck (propRevEqNot :: Property [Int]) 100 -- should fail and stop
-
 \end{code}
 
 The SimpleCheck module provides a useful collection of simple test programs
-that start with default test parameters and test case generators,
-but allow the tester to make a few simple choices to customize the testing if desired.
-The simpleTest, simpleReport and simpleCheck functions are the glue
-to connect the reporting, test execution and test suite options for a test program.
+that start with default test parameters and test case generators, but allow the
+tester to make a few simple choices to customize the testing if desired.  The
+simpleTest, simpleReport and simpleCheck functions are the glue to connect the
+reporting, test execution and test suite options for a test program.
 
-The examples in this module have properties over standard Haskell types,
-where the default generators were already available.  How are test cases generated
-when the module contains a new type?  How are the test cases chosen
-for inclusion in the test suite, and how can that be controlled?  Surely there is
-a better way to display the results?  These questions and more are answered next.  
-
-
+The examples in this module have properties over standard Haskell types, where
+the default generators were already available.  How are test cases generated
+when the module contains a new type?  How are the test cases chosen for
+inclusion in the test suite, and how can that be controlled?  Surely there is
+a better way to display the results?  These questions and more are answered
+in the next part of the tutorial.  
