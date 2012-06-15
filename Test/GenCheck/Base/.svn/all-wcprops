@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/species/!svn/ver/1095/gencheck-dev/Test/GenCheck/Base
+END
+Datum.lhs
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/species/!svn/ver/1065/gencheck-dev/Test/GenCheck/Base/Datum.lhs
+END
+Base.lhs
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/species/!svn/ver/1095/gencheck-dev/Test/GenCheck/Base/Base.lhs
+END
+LabelledPartition.lhs
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/species/!svn/ver/1095/gencheck-dev/Test/GenCheck/Base/LabelledPartition.lhs
+END
+Verdict.lhs
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/species/!svn/ver/1095/gencheck-dev/Test/GenCheck/Base/Verdict.lhs
+END
+Memoize.lhs
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/species/!svn/ver/1071/gencheck-dev/Test/GenCheck/Base/Memoize.lhs
+END
