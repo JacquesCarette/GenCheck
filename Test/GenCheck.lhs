@@ -11,7 +11,7 @@ module Test.GenCheck
 , simpleCheck, simpleTest, simpleReport
 , MapRankSuite, TestSuite, suiteMerge, GenInstruct
 , genSuite, testSuite, stdSuite, deepSuite, baseSuite
-, Testable(..), StandardGens(..), stdEnumGens
+, Generator, Testable(..), StandardGens(..), stdEnumGens
 , Label(..), Enumerated(..), Enumeration
 , listStdGens
 , EnumGC(..)
@@ -30,7 +30,8 @@ import Test.GenCheck.System.SimpleCheck(simpleTest, simpleReport, simpleCheck)
 import Test.GenCheck.System.TestSuite (MapRankSuite, TestSuite, suiteMerge, 
        GenInstruct, genSuite, testSuite, stdSuite, deepSuite, baseSuite)
 
-import Test.GenCheck.Generator.Generator(Testable(..),StandardGens(..),stdEnumGens)
+import Test.GenCheck.Generator.Generator (Generator, Testable(..), 
+            StandardGens(..),stdEnumGens)
 import Test.GenCheck.Generator.StructureGens(listStdGens) -- instances of Testable
 import Test.GenCheck.Generator.BaseGens() -- and instances of Enumerated
 import Test.GenCheck.Generator.Substitution

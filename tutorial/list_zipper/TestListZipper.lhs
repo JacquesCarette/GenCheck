@@ -3,7 +3,8 @@ module Test_ListZipper where
 
 import System.Random(mkStdGen)
 
-import Test.GenCheck.System.SimpleCheck (stdTestArgs, stdReportArgs)
+import Test.GenCheck.System.SimpleCheck 
+           (stdTest, stdTestArgs, stdReport, stdReportArgs)
 
 -- because we're doing more than just the usual stuff
 import Test.GenCheck 
@@ -18,11 +19,6 @@ genZip_Char :: StandardGens (Zipper Char)
 genZip_Char = substStdGenAll (stdTestGens :: StandardGens (Zipper Label))  
                              genLowCharAll
 
-genList_Int :: StandardGens [Int]
-genList_Int = substStdGenAll (stdTestGens :: StandardGens [Label])  
-                               genIntAll
-
--- genZip makes a pair generator from two generators
 genValZip_Char :: Rank -> [(Char, Zipper Char)]
 genValZip_Char r = 
   let gc = (genUpperCharRnd (mkStdGen 657985498)) -- random value generator
@@ -43,11 +39,11 @@ testFoldlz_1, testFoldlz_2 :: Rank -> Count -> IO ()
 testFoldlz_1 r n = 
   let propFoldlz_sum = propFoldlz (+) 0 :: Property [Int]
       lbl = "Compare sum over integer list to left fold, up to rank " ++ (show r)
-  in  stdTestArgs genList_Int lbl r propFoldlz_sum n
+  in  stdTest propFoldlz_sum n
 testFoldlz_2 r n = 
   let propFoldlz_sum = propFoldlz (+) 0 :: Property [Int]
       lbl = "Compare sum over integer list to left fold, up to rank " ++ (show r)
-  in  stdReportArgs genList_Int lbl r propFoldlz_sum n
+  in  stdReport propFoldlz_sum n
 
 testInsDelRepl_1 :: Rank -> IO ()
 testInsDelRepl_1 r = 

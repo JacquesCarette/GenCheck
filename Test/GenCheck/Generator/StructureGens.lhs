@@ -14,6 +14,7 @@ module Test.GenCheck.Generator.StructureGens
 import Test.GenCheck.Base.Base (Rank)
 import Test.GenCheck.Generator.Enumeration (Label(..))
 import Test.GenCheck.Generator.Generator (Generator, StandardGens(..), Testable(..))
+import Test.GenCheck.Generator.BaseGens() -- Testable instances
 import Test.GenCheck.Generator.Substitution (Structure(..), Structure2(..))
 
 \end{code}
@@ -49,12 +50,23 @@ instance Structure [] where
 genListAll :: Generator [Label]
 genListAll r = [take (r-1) (repeat A)]
 
-instance Testable [Label] where
-  stdTestGens = listStdGens
-
 listStdGens :: StandardGens [Label]
 listStdGens = StdGens g g (\_ -> g) (\_ -> g) 
   where g = genListAll
+
+instance Testable [Label] where
+  stdTestGens = listStdGens
+
+listStdSub :: (Testable a) => StandardGens [a]
+listStdSub = 
+  let stdg = stdTestGens
+  in StdGens (vector (genAll stdg 1)) (vector (genXtrm stdg 1)) 
+             (\k -> (vector (genUni stdg k 1))) (\s -> (vector (genRand stdg s 1)))
+  where vector xs r = let (x, xs') = splitAt r xs in x : (vector xs' r)
+
+instance Testable [Int] where
+  stdTestGens = listStdSub :: StandardGens [Int]
+
 \end{code}
 
 A pair generator is two sorted, so is an instance of Structure2.
