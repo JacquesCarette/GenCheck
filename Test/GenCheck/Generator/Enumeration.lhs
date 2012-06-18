@@ -149,7 +149,7 @@ enumRange (l,u) e = mkEnum c' s'
 
 get :: Enumeration c a -> Rank -> Count -> Maybe (c a)
 get (Enum c s) r n | (r > 0) && (n > 0) =  
-    if (c r) > n then Just (s r n) else Nothing
+    if (c r) >= n then Just (s r n) else Nothing
 get _ _ _ | otherwise = Nothing
 
 getUnsafe :: Enumeration c a -> Rank -> Count -> c a

@@ -82,9 +82,23 @@ large number of test cases, and may contain duplicate index entries.
 
 \begin{code}
 extreme :: EnumStrat
-extreme up | up == 0 = []
+extreme up | up <= 0 = []
 extreme up | up == 1 = [1]
-extreme up | up > 1 = xtrm (1,up)
+extreme up = interleave low high
+  where low = [(1::Integer) .. (up `div` 2)] 
+        high = [(up - x + 1) | x <- low]
+
+interleave :: [a] -> [a] -> [a]
+interleave xs [] = xs
+interleave [] ys = ys
+interleave (x:xs) (y:ys) =  x : (y : interleave xs ys)
+\end{code}
+
+\begin{code}
+branch :: EnumStrat
+branch up | up <= 0 = []
+branch up | up == 1 = [1]
+branch up | up > 1 = xtrm (1,up)
   where
     xtrm (l, u) = 
       let dif = u - l
@@ -94,10 +108,5 @@ extreme up | up > 1 = xtrm (1,up)
          else l : u : m :
            (if dif < 3 then [] 
                else interleave (xtrm ((l+1), (m-1))) (xtrm ((m+1), (u-1))))
-extreme _ = error "extreme called with argument < 0"
 
-interleave :: [a] -> [a] -> [a]
-interleave xs [] = xs
-interleave [] ys = ys
-interleave (x:xs) (y:ys) =  x : (y : interleave xs ys)
 \end{code}

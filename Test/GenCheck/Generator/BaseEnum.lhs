@@ -49,7 +49,7 @@ makeBaseEnum :: Count -> BaseSelector a -> BaseEnum a
 makeBaseEnum cnt sel = Base cnt sel
 
 getBase :: BaseEnum a -> Count -> Maybe a
-getBase (Base c s) n | (n > 0)   = if c > n then Just (s n) else Nothing
+getBase (Base c s) n | (n > 0)   = if c >= n then Just (s n) else Nothing
 getBase _  _         | otherwise = Nothing
 
 getBaseUnsafe :: BaseEnum a -> Count -> a
@@ -69,7 +69,7 @@ enumBaseRange :: (Enum a) => (a,a) -> BaseEnum a
 enumBaseRange (l,u) = 
   let shift = toInteger (fromEnum l)
       cnt = ((toInteger (fromEnum u)) - shift) + 1
-  in makeBaseEnum cnt (\x -> toEnum (fromInteger (x + shift)))
+  in makeBaseEnum cnt (\x -> toEnum (fromInteger (x + shift - 1)))
 \end{code}
 
 If the type is also Bounded, then the enumeration can be over the entire set of
