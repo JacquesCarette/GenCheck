@@ -1,19 +1,33 @@
 \section{Tutorial 1: The simplest case.}
 
-\include list_zipper/Test_ListZipper.hs
+\input {reverse/TestReverseList.lhs}
 
-\section{Tutorial 2: Testing against a Specification}
+The examples in this module have properties over standard Haskell types, where
+the default generators were already available.  How are test cases generated
+when the module contains a new type?  How are the test cases chosen for
+inclusion in the test suite, and how can that be controlled?  Surely there is
+a better way to display the results?  These questions and more are answered
+in the next part of the tutorial.  
+
+\section{Tutorial 2: Testing with New Data Types}
+
+The first tutorial covered testing properties over standard Haskell types.
+Default test case generators were already supplied by GenCheck
+as instances of the Testable class, but what about new data types?
+In this tutorial, we explain how to use the type constructor definition and 
+GenCheck enumeration combinators to construct the standard test generators
+based on the type constructor definitions.
 
 There are three steps in testing a module against 
 a specification using the GenCheck framework:
 
-\begin{enumeration}
+\begin{enumerate}
 \item define and code the properties that make up the specification
 \item select the test system that provides the most appropriate
 test scheduling and reporting schema for the current phase of the development
 \item define the test suite for those properties,
 including the test case generators for each.
-\end{enumeration}
+\end{enumerate}
 
 In the previous section the details of the test system
 and test suite generation were hidden by the SimpleCheck API.
@@ -23,7 +37,8 @@ for a particular set of properties.
 
 For this tutorial, we'll look at a list zipper implementation,
 taken from the ListZipper package (1.2.0.2).  Only snippets
-of the code will be provided as the package is rather large.
+of the code will be provided as the package is rather large
+(see tutorial/list\_zipper/ListZipper.hs  for the module source).
 The Zipper data type is
 
 \begin{verbatim}
@@ -52,7 +67,9 @@ of the GenCheck framework'}.
 The specification module would normally be separate from the implementation,
 but may include functions that test the properties using GenCheck.
 
-\include PropListZip.lhs
+\subsubsection{List Zipper Properties}
+
+\input {list_zipper/PropListZip.lhs}
 
 \subsection{Test Suites and Standard Generators}
 The module System.TestSuite contains functions that assemble test suites 
@@ -89,7 +106,7 @@ the TestSuite module, and most of the higher level API functions as the default 
 A type is an instance of Testable if a set of standard generators is available for it;
 these generators can be constructed for any type that has an Enumeration associated with it. 
 
-\subsection{Enumerating New Data Types}
+\subsubsection{Enumerating New Data Types}
 A GenCheck enumeration is a way of ordering the values of a type.
 For base types such as Int and Char, this is called a base enumeration (BaseEnum)
 and is effectively the same as the Haskell Enum class;
@@ -105,13 +122,13 @@ For new data types, enumerations can be easily made using the enumeration combin
 These combinators simply mirror the structure of the type constructors,
 but produce the required enumerations.
 
-\include ListZipper_GC.lhs
+\subsubsection{List Zipper Enumeration and Generators}
+
+\input {list_zipper/ListZipper_GC.lhs}
 
 Generators are created from enumerations and enumerative strategies
 using Generator.enumGenerator for structure types and BaseGen.baseEnumGen for base types.
 The standard generator set, and therefore the Testable instance, is built using stdEnumGens.
-
-\include TestListZipper.lhs
 
 \subsection{The Testing Process}
 Typically a GenCheck user would start with the default test suites
@@ -128,91 +145,94 @@ The highly modular GenCheck API allows an arbitrarily deep level of control,
 with a commensurate level of complexity,
 supporting customization and new development as required.
 
-
-
-
-\section{Tutorial 3: Customizing the Test Programs}
-
-??? Everything below this is currently junk, keeping it for review / reuse
-
-Test suite and Generators
-
-The System.SimpleCheck module test suites are test cases stored in 
-a Haskell Map (as in Data.Map) indexed by rank, called a MapRankSuite.
-Storing test results this way may or may not be meaningful in 
-any given situation, but it is the only information guaranteed to be available.
-The GenCheck framework allows test suite containers to be customized using
-a class called LabelledPartition that abstracts the interface required by the test programs,
-but all of the discussion in this tutorial assumes the use of MapRankSuites.
-
-need to identify the domain of each property
-start with the input type, and then consider any restrictions over the values of that type
-a test suite is a partitioned collection of test cases
-  the partions are labelled to improve scheduling and reporting
-  could use a single partition, or multi-level labelled partitions
-
-test cases can be manually coded or automatically generated
-manually coded test cases just written into the partitioned collection
-
-Input types are base types or structures composed with other types as ``elements''.
-
-generators are functions from positive Int rank to (possibly empty) list of values
-  intent is that rank is in inverse ``priority'' of test cases i.e. 1 is highest.
-  there is generally no guarantee of uniqueness / completeness
-  either use the generators provided, use purely custom generators,
-     or use generator combinators provided
-
-  base type generators only have values for rank 1, other ranks are empty lists
-  some generators are provided in:
-    Test.GenCheck.Generator.BaseGen:
-       Int,Char,String,Ratio,Double,Float
-       baseGen - creates a base type generator from a list
-
-  polymorphic structures are generated in two stages:
-    first generate the structures using a constant type as the element
-        (e.g. (), or |data Label = A \vbar B \vbar C ...| for multi-sort structures)
-    use composition with a base type generator to fill in the elements
-      Test.GenCheck.Generator.Composition has composition functions
-    some polymorphic structure generators in Test.GenCheck.Generator.StructureGen:
-        lists ([]), pairs (,)
-
-enumerative generators provide a useful approach to generators
-an enumeration of a type is an ordering of the type values with (rank,index)
-   guarantees uniqueness and totality
-the Enumeration is a : count of the number of elements at each rank
-                       select function from rank,index to a value
-
-flat (rank 1) enumerations - Test.GenCheck.Generator.BaseTypeEnum module
-Haskell (Bounded, Enum) instances are rank 1 only enumerations, 
- includes Int, Char, any finite list of values
- enumBaseAll is a template for this, copy and hard code the specific type
-    (wanted to optimize Int generation, so didn't create general instance of Enum,Bounded)
- enumBaseRng to enumerate a range of values, don't need Bounded instance
- enumList enumerates finite list of values (all rank 1)
-
-ranked enumerations -   Test.GenCheck.Generator.Enumeration
-Haskell polymorphic types which are regular polynomial structures 
-  have enumerations where the rank is the number of elements (size)
-  use combinatorial theory to index regular polynomial Haskell structures
-
-structure generators composed from combinators that mirror constructor
-eConst c, eNode x, eSum e1 e2, eProd t e1 e2 (and eSum3,eProd3,etc.)
-
-       
+\subsubsection{Testing the List Zipper Module}
+\input {list_zipper/TestListZipper.lhs}
 
 
 
 
-Enumerations are total orderings over a type.
-
-Base Type Enumerations
-are flat so all values have rank 1
-any instance of the Enum class in Haskell is enumerable, assuming it is also bounded
-Integer is not bounded, so is not enumerable in this way.
-
-Structure Enumerations
-rank is the number of elements in the structure
-value of a structure is intended to be the structure holes for each element;
-can't do ``holes'' in Haskell so generally use either |()| or a sort label identifying the element type,
-e.g. data Label = A | B | C etc.
-
+%\section{Tutorial 3: Customizing the Test Programs}
+%
+%??? Everything below this is currently junk, keeping it for review / reuse
+%
+%Test suite and Generators
+%
+%The System.SimpleCheck module test suites are test cases stored in 
+%a Haskell Map (as in Data.Map) indexed by rank, called a MapRankSuite.
+%Storing test results this way may or may not be meaningful in 
+%any given situation, but it is the only information guaranteed to be available.
+%The GenCheck framework allows test suite containers to be customized using
+%a class called LabelledPartition that abstracts the interface required by the test programs,
+%but all of the discussion in this tutorial assumes the use of MapRankSuites.
+%
+%need to identify the domain of each property
+%start with the input type, and then consider any restrictions over the values of that type
+%a test suite is a partitioned collection of test cases
+%  the partions are labelled to improve scheduling and reporting
+%  could use a single partition, or multi-level labelled partitions
+%
+%test cases can be manually coded or automatically generated
+%manually coded test cases just written into the partitioned collection
+%
+%Input types are base types or structures composed with other types as ``elements''.
+%
+%generators are functions from positive Int rank to (possibly empty) list of values
+%  intent is that rank is in inverse ``priority'' of test cases i.e. 1 is highest.
+%  there is generally no guarantee of uniqueness / completeness
+%  either use the generators provided, use purely custom generators,
+%     or use generator combinators provided
+%
+%  base type generators only have values for rank 1, other ranks are empty lists
+%  some generators are provided in:
+%    Test.GenCheck.Generator.BaseGen:
+%       Int,Char,String,Ratio,Double,Float
+%       baseGen - creates a base type generator from a list
+%
+%  polymorphic structures are generated in two stages:
+%    first generate the structures using a constant type as the element
+%        (e.g. (), or |data Label = A \vbar B \vbar C ...| for multi-sort structures)
+%    use composition with a base type generator to fill in the elements
+%      Test.GenCheck.Generator.Composition has composition functions
+%    some polymorphic structure generators in Test.GenCheck.Generator.StructureGen:
+%        lists ([]), pairs (,)
+%
+%enumerative generators provide a useful approach to generators
+%an enumeration of a type is an ordering of the type values with (rank,index)
+%   guarantees uniqueness and totality
+%the Enumeration is a : count of the number of elements at each rank
+%                       select function from rank,index to a value
+%
+%flat (rank 1) enumerations - Test.GenCheck.Generator.BaseTypeEnum module
+%Haskell (Bounded, Enum) instances are rank 1 only enumerations, 
+% includes Int, Char, any finite list of values
+% enumBaseAll is a template for this, copy and hard code the specific type
+%    (wanted to optimize Int generation, so didn't create general instance of Enum,Bounded)
+% enumBaseRng to enumerate a range of values, don't need Bounded instance
+% enumList enumerates finite list of values (all rank 1)
+%
+%ranked enumerations -   Test.GenCheck.Generator.Enumeration
+%Haskell polymorphic types which are regular polynomial structures 
+%  have enumerations where the rank is the number of elements (size)
+%  use combinatorial theory to index regular polynomial Haskell structures
+%
+%structure generators composed from combinators that mirror constructor
+%eConst c, eNode x, eSum e1 e2, eProd t e1 e2 (and eSum3,eProd3,etc.)
+%
+%       
+%
+%
+%
+%
+%Enumerations are total orderings over a type.
+%
+%Base Type Enumerations
+%are flat so all values have rank 1
+%any instance of the Enum class in Haskell is enumerable, assuming it is also bounded
+%Integer is not bounded, so is not enumerable in this way.
+%
+%Structure Enumerations
+%rank is the number of elements in the structure
+%value of a structure is intended to be the structure holes for each element;
+%can't do ``holes'' in Haskell so generally use either |()| or a sort label identifying the element type,
+%e.g. data Label = A | B | C etc.
+%

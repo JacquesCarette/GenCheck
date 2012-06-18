@@ -1,7 +1,7 @@
 The GenCheck class Structure and Enumeration instances for Zipper.
 It is typical of what would be mechanically generated for the type,
 but has been converted to literate Haskell and documented.
-There is no special significance to the ``_GC'' suffix in the name,
+There is no special significance to the $_GC$ suffix in the name,
 that is just a convention so the GenCheck instances module is easily found.
 
 \begin{code}

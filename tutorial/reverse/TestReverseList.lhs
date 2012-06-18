@@ -24,7 +24,7 @@ and test case generators are required.
 
 \begin{code}
 propRevUnitEq :: (Eq a) => Property a
-propRevUnitEq x = let lx = [x] in revList lx == [x]
+propRevUnitEq x = (revList [x]) == [x]
 
 propRevRevEq :: (Eq a) => Property [a]
 propRevRevEq xs = (revList.revList) xs == xs
@@ -87,21 +87,19 @@ The next property requires a list of values to reverse,
 so baseTest is no longer appropriate as it is only for scalar values.
 The test suite must have lists of a variety of different lengths;
 in GenCheck parlance the size of a structure is referred to as it's ``rank''.
-stdTest and deepTest both generate test suites with Testable structures
-of different ranks, where rank is the number of elements in the structure.
+stdTest and deepTest both generate test suites for structures,
+with deepTest including much higher ranked test cases, but fewer at each rank.
 For lists, there is only one list structure for each rank,
-so we'll use deepCheck which has only a few test cases at each rank
-and tests larger structures.
+so we'll use deepTest (deepReport and deepCheck would produce the same test cases).
 
-Setting the property to a list of Ints seems a good starting point,a
-but is [Int] an instance of Testable or do we need to do something?
+Setting the property to a list of Ints seems a good starting point,
+but in order to use the SimpleCheck test functions we need an instance of Testable.
+Is |[Int]| an instance of Testable or do we need to do something?
 Lists are instances of the Structure class, which provides the method
 to populate a structure with elements from another generator,
-and also an instance of Testable, so there are standard generators available
-(this isn't surprising because there is only one possible list shape at each rank,
-namely the list with that many elements in it).  A default instance of Testable
-is provided for lists of any Testable type,a and Ints are Testable, so we don't
-have to worry about how lists are generated - yet.
+and also an instance of Testable, so there are standard generators available.
+A default instance of Testable is provided for lists of any Testable type,
+and Ints are Testable, so we don't have to worry about how lists are generated - yet.
 
 \begin{code}
 testRevIdem_1 = deepTest (propRevRevEq :: Property [Int]) 100
@@ -137,7 +135,8 @@ all the failures!  This is where using deepCheck comes in handy - it stops
 after the first failure case.
 
 \begin{code}
-testRevEqNot_2 =  deepCheck (propRevEqNot :: Property [Int]) 100 -- should fail and stop
+-- isn't implemented yet, so this is redundant
+testRevEqNot_2 =  deepCheck (propRevEqNot :: Property [Int]) 100 
 \end{code}
 
 The SimpleCheck module provides a useful collection of simple test programs
@@ -145,10 +144,3 @@ that start with default test parameters and test case generators, but allow the
 tester to make a few simple choices to customize the testing if desired.  The
 simpleTest, simpleReport and simpleCheck functions are the glue to connect the
 reporting, test execution and test suite options for a test program.
-
-The examples in this module have properties over standard Haskell types, where
-the default generators were already available.  How are test cases generated
-when the module contains a new type?  How are the test cases chosen for
-inclusion in the test suite, and how can that be controlled?  Surely there is
-a better way to display the results?  These questions and more are answered
-in the next part of the tutorial.  
