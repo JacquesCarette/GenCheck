@@ -1,5 +1,5 @@
 name:           gencheck
-version:        0.1
+version:        0.1.1
 cabal-version:  >= 1.6
 license:        BSD3
 license-file:   License.txt
@@ -57,3 +57,6 @@ library
 
   other-modules:
 
+source-repository head
+  type:     git
+  location: http://github.com/JacquesCarette/GenCheck.git
