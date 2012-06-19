@@ -1,0 +1,15 @@
+%% code.sty
+
+\usepackage{verbatim}
+%
+\makeatletter
+\def\itverb{%
+\def\verbatim@font{\ttfamily\slshape
+                   \let\do\do@noligs
+                   \verbatim@nolig@list}%
+}%itverb
+\makeatother
+%
+\newenvironment{code}{\small\verbatim}{\endverbatim\normalsize}
+\newenvironment{pseudocode}{\small\it\verbatim}{\endverbatim\normalsize}
+\newenvironment{session}{\small\itverb\verbatim}{\endverbatim\normalsize}
