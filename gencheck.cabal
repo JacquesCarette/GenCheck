@@ -7,6 +7,7 @@ stability:      experimental
 author:         Gordon J. Uszkay, Jacques Carette
 maintainer:     carette@mcmaster.ca, uszkaygj@mcmaster.ca
 homepage:       http://github.com/JacquesCarette/GenCheck
+source-repository: http://gitbug.com/JacquesCarette/GenCheck
 category:       Testing
 synopsis:       A testing framework inspired by QuickCheck and SmallCheck
 build-type:     Simple
