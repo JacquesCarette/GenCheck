@@ -98,7 +98,7 @@ interleave (x:xs) (y:ys) =  x : (y : interleave xs ys)
 branch :: EnumStrat
 branch up | up <= 0 = []
 branch up | up == 1 = [1]
-branch up | up > 1 = xtrm (1,up)
+branch up           = xtrm (1,up) -- up > 1
   where
     xtrm (l, u) = 
       let dif = u - l
