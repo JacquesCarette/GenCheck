@@ -69,7 +69,7 @@ baseSuite is used for base type generators; all values are of rank 1.
 
 \begin{code}
 baseSuite :: StandardGens a -> Count -> MapRankSuite a
-baseSuite (UnrankedGen g) n = 
+baseSuite (StdGens g _ _ _ True) n = 
   let gis =  [(1, n)]
   in  testSuite [g] (repeat gis)
 baseSuite _ _ = error "baseSuite applied to a Ranked Generator"
@@ -82,12 +82,11 @@ default approach for testing across multiple ranks.
 
 \begin{code}
 stdSuite :: StandardGens a -> StdGen -> Rank -> Count -> MapRankSuite a
-stdSuite (StdGens g1 g2 g3 g4) s rmax n = 
+stdSuite (StdGens g1 g2 g3 g4 False) s rmax n = 
   let nr = ((n `div` (toInteger rmax) + 1) `div` 4) + 1
       gis =  [(r, nr) | r <- [1..rmax]]
       uni = fromInteger $ max (nr `div` 4 + 1) 3
   in  testSuite [g1, g2, g3 uni, g4 s] (repeat gis)
-stdSuite (UnrankedGen _) _ _ _ = error "stdSuite applied to an Unranked Generator"
 \end{code}
 
 deepSuite performs a small number of tests over each rank up to a maximum size,
@@ -96,11 +95,11 @@ using the same rank and count instructions for each generator.
 
 \begin{code}
 deepSuite :: StandardGens a -> StdGen -> Rank -> Count -> MapRankSuite a
-deepSuite (StdGens g1 g2 g3 g4) s rmax n = 
+deepSuite (StdGens g1 g2 g3 g4 False) s rmax n = 
   let nr = ((n `div` (toInteger rmax) + 1) `div` 4) + 1
       gis =  [(r, nr) | r <- [1..rmax]]
       uni = fromInteger $ max (nr `div` 4 + 1) 3
   in  testSuite [g1, g2, g3 uni, g4 s] (repeat gis)
-deepSuite (UnrankedGen _) _ _ _ = error "deepSuite applied to an Unranked Generator"
+deepSuite _ _ _ _ = error "deepSuite applied to an Unranked Generator"
 \end{code}
 

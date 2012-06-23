@@ -131,22 +131,22 @@ the record.
 
 \begin{code}
 substStdGenN :: Structure c => Int -> StandardGens (c a) -> Generator b -> StandardGens (c b)
-substStdGenN n (StdGens g1 g2 g3 g4) g = 
+substStdGenN n (StdGens g1 g2 g3 g4 False) g = 
   let ga = substN n g1 g
       gx = substN n g2 g
       gu k = substN n (g3 k) g
       gr s = substN n (g4 s) g
-  in StdGens ga gx gu gr
-substStdGenN _ (UnrankedGen _) _ = error "Can only substituted into ranked"
+  in StdGens ga gx gu gr True
+substStdGenN _ _ _ = error "Can only substituted into ranked"
 
 substStdGenAll :: Structure c => StandardGens (c a) -> Generator b -> StandardGens (c b)
-substStdGenAll (StdGens g1 g2 g3 g4) g = 
+substStdGenAll (StdGens g1 g2 g3 g4 False) g = 
   let ga = substAll g1 g
       gx = substAll g2 g
       gu k = substAll (g3 k) g
       gr s = substAll (g4 s) g
-  in StdGens ga gx gu gr
-substStdGenAll (UnrankedGen _) _ = error "Can only substitute into ranked"
+  in StdGens ga gx gu gr True
+substStdGenAll _ _ = error "Can only substitute into ranked"
 \end{code}
 
 Multi-sort structure substitution. This could be accomplished with multiple
@@ -184,11 +184,11 @@ gsub2N n k fxs@(fx:fxss) ys zs =
 
 subst2StdGen :: Structure2 c => StandardGens (c a b) -> Generator a' -> Generator b'
                                   -> StandardGens (c a' b')
-subst2StdGen (StdGens g1 g2 g3 g4) ga' gb' = 
+subst2StdGen (StdGens g1 g2 g3 g4 False) ga' gb' = 
   let ga = subst2 g1 ga' gb'
       gx = subst2 g2 ga' gb'
       gu k = subst2 (g3 k) ga' gb'
       gr s = subst2 (g4 s) ga' gb'
-  in StdGens ga gx gu gr
-subst2StdGen (UnrankedGen _) _ _ = error "Can only substitute into ranked"
+  in StdGens ga gx gu gr True
+subst2StdGen _ _ _ = error "Can only substitute into ranked"
 \end{code}

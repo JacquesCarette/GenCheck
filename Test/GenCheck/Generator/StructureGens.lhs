@@ -51,7 +51,7 @@ genListAll :: Generator [Label]
 genListAll r = [take (r-1) (repeat A)]
 
 listStdGens :: StandardGens [Label]
-listStdGens = StdGens g g (\_ -> g) (\_ -> g) 
+listStdGens = StdGens g g (\_ -> g) (\_ -> g) False
   where g = genListAll
 
 instance Testable [Label] where
@@ -60,8 +60,9 @@ instance Testable [Label] where
 listStdSub :: (Testable a) => StandardGens [a]
 listStdSub = 
   let stdg = stdTestGens
-  in StdGens (vector (genAll stdg 1)) (vector (genXtrm stdg 1)) 
+  in StdGens (vector (genAll stdg 1)) (vector (genXtrm stdg 1))
              (\k -> (vector (genUni stdg k 1))) (\s -> (vector (genRand stdg s 1)))
+             False
   where vector xs r = let (x, xs') = splitAt r xs in x : (vector xs' r)
 
 instance Testable [Int] where
@@ -83,7 +84,7 @@ genTplAll r | r == 2    = [(A,B)]
 genTplAll _ | otherwise = []
 
 tplStdGens :: StandardGens (Label, Label)
-tplStdGens = StdGens g g (\_ -> g) (\_ -> g) where g = genTplAll
+tplStdGens = StdGens g g (\_ -> g) (\_ -> g) False where g = genTplAll
 
 instance Testable (Label,Label) where
   stdTestGens = tplStdGens

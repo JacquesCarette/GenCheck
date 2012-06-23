@@ -118,11 +118,11 @@ data StandardGens a = StdGens
   , genXtrm :: Generator a
   , genUni  :: Int    -> Generator a
   , genRand :: StdGen -> Generator a
+  , ranked :: Bool
   }
-  | UnrankedGen (Generator a)
 
 enumGens :: Enumeration c Label -> StandardGens (c Label) 
-enumGens e = StdGens allGen xtrmGen uniGen randGen
+enumGens e = StdGens allGen xtrmGen uniGen randGen False
   where
     allGen   = enumGenerator exhaustG e
     xtrmGen  = enumGenerator extreme e

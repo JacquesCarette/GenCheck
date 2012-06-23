@@ -40,7 +40,7 @@ baseEnumGCStdGens :: (EnumGC a) => StandardGens a
 baseEnumGCStdGens = baseEnumGCGens base
 
 baseEnumGCGens :: BaseEnum a -> StandardGens a
-baseEnumGCGens e = StdGens allGen xtrmGen uniGen randGen
+baseEnumGCGens e = StdGens allGen xtrmGen uniGen randGen True
   where
     allGen   = baseEnumGen exhaustG e
     xtrmGen  = baseEnumGen extreme e
@@ -61,7 +61,7 @@ genBaseRangeRnd (l',u') t = baseGen $ rg (l',u') t
 
 genBaseStdGens :: (Enum a, Random a) => (a,a) -> StandardGens a
 genBaseStdGens rng = StdGens (genBaseRangeAll rng) (genBaseRangeExt rng)
-                             (genBaseRangeUni rng) (genBaseRangeRnd rng)
+                             (genBaseRangeUni rng) (genBaseRangeRnd rng) True
 
 instance Testable Int where
   stdTestGens = genBaseStdGens (-100, 100)
@@ -98,7 +98,8 @@ range.
 
 \begin{code}
 instance Testable Char where
-  stdTestGens = StdGens genDfltCharAll genDfltCharExt genDfltCharUni genDfltCharRnd
+  stdTestGens = StdGens genDfltCharAll genDfltCharExt 
+                        genDfltCharUni genDfltCharRnd True
 
 genLowCharAll, genDfltCharAll, genUpperCharAll, genDigitCharAll :: Generator Char
 genDfltCharAll     = baseGen [' '..'~']
