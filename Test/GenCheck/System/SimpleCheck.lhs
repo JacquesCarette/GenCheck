@@ -1,40 +1,38 @@
-SimpleCheck is a very simple test program written against the GenCheck
-framework.  The test suite is pulled from a single generator, uses the |map|
-function to schedule the tests, and reports either pass or fail with the
-failing test cases.  Test cases and results are categorized by rank, stored in
-a simple Map.
-
-The functionality is similar to that of QuickCheck and SmallCheck, but the test
-cases can generated using different strategies, including but not limited to
-random and exhaustive generation.
-
 \begin{code}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
+{- |SimpleCheck is a series of very simple test programs written against the
+GenCheck framework.  The test suite is pulled from a single generator, uses the
+|map| function to schedule the tests, and reports either pass or fail with the
+failing test cases.  Test cases and results are categorized by rank, stored in
+a simple Map.
+
+The functionality is similar to that of QuickCheck and SmallCheck, but the test
+cases can generated using different strategies, including but not limited to
+random and exhaustive generation. -}
 module Test.GenCheck.System.SimpleCheck 
-( Property
-, simpleTest
+( simpleTest
 , simpleReport
 , simpleCheck
 , stdTest
-, stdTestArgs
 , stdReport
-, stdReportArgs
 , stdCheck
-, stdCheckArgs
 , deepTest
-, deepTestArgs
 , deepReport
-, deepReportArgs
 , deepCheck
-, deepCheckArgs
 , baseTest
-, baseTestArgs
 , baseReport
-, baseReportArgs
 , baseCheck
+, stdTestArgs
+, stdReportArgs
+, stdCheckArgs
+, deepTestArgs
+, deepReportArgs
+, deepCheckArgs
+, baseTestArgs
+, baseReportArgs
 , baseCheckArgs
 ) where
 
@@ -80,68 +78,56 @@ The stdReport, deepReport, etc. test schedulers are the same, but they print
 out all of the test cases, highlighting the failure cases.
 
 \begin{code}
-stdTest       ::  (Testable a, Integral k)  => Property a -> k -> IO ()
+stdTest,stdReport,stdCheck :: (Testable a, Integral k)  => Property a -> k -> IO ()
 stdTest p n = stdTestArgs stdTestGens "" 30 p (toInteger n)
+stdReport p n = stdReportArgs stdTestGens "" 30 p (toInteger n)
+stdCheck p n = stdCheckArgs stdTestGens "" 30 p (toInteger n)
 
 stdTestArgs   :: Show a => StandardGens a -> String -> Rank -> Property a -> Count -> IO ()
 stdTestArgs  gs lbl r p n = 
   do s <- System.Random.newStdGen
      simpleTest lbl p (stdSuite gs s r n)
 
-stdReport       ::  (Testable a, Integral k)  => Property a -> k -> IO ()
-stdReport p n = stdReportArgs stdTestGens "" 30 p (toInteger n)
-
 stdReportArgs   :: Show a => StandardGens a -> String -> Rank -> Property a -> Count -> IO ()
 stdReportArgs  gs lbl r p n = 
   do s <- System.Random.newStdGen
      simpleReport lbl p (stdSuite gs s r n)
-
-stdCheck       ::  (Testable a, Integral k)  => Property a -> k -> IO ()
-stdCheck p n = stdCheckArgs stdTestGens "" 30 p (toInteger n)
 
 stdCheckArgs   :: Show a => StandardGens a -> String -> Rank -> Property a -> Count -> IO ()
 stdCheckArgs  gs lbl r p n = 
   do s <- System.Random.newStdGen
      simpleCheck lbl p (stdSuite gs s r n)
 
-deepTest      :: (Testable a, Integral k)  => Property a -> k -> IO ()
+deepTest,deepReport,deepCheck :: (Testable a, Integral k)  => Property a -> k -> IO ()
 deepTest p n = deepTestArgs stdTestGens "" 60 p (toInteger n)
+deepReport p n = deepReportArgs stdTestGens "" 60 p (toInteger n)
+deepCheck p n = deepCheckArgs stdTestGens "" 60 p (toInteger n)
 
 deepTestArgs  :: Show a => StandardGens a -> String-> Rank -> Property a -> Count -> IO ()
 deepTestArgs  gs lbl r p n = 
   do s <- newStdGen
      simpleTest lbl p (deepSuite gs s r n)
 
-deepReport      :: (Testable a, Integral k)  => Property a -> k -> IO ()
-deepReport p n = deepReportArgs stdTestGens "" 60 p (toInteger n)
-
 deepReportArgs  :: Show a => StandardGens a -> String-> Rank -> Property a -> Count -> IO ()
 deepReportArgs  gs lbl r p n = 
   do s <- newStdGen
      simpleReport lbl p (deepSuite gs s r n)
-
-deepCheck      :: (Testable a, Integral k)  => Property a -> k -> IO ()
-deepCheck p n = deepCheckArgs stdTestGens "" 60 p (toInteger n)
 
 deepCheckArgs  :: Show a => StandardGens a -> String-> Rank -> Property a -> Count -> IO ()
 deepCheckArgs  gs lbl r p n = 
   do s <- newStdGen
      simpleCheck lbl p (deepSuite gs s r n)
 
-baseTest      :: (Testable a, Integral k) => Property a -> k -> IO ()
+baseTest,baseReport,baseCheck :: (Testable a, Integral k) => Property a -> k -> IO ()
 baseTest p n = baseTestArgs stdTestGens "" p (toInteger n)
+baseReport p n = baseReportArgs stdTestGens "" p (toInteger n)
+baseCheck p n = baseCheckArgs stdTestGens "" p (toInteger n)
 
 baseTestArgs  :: Show a => StandardGens a -> String -> Property a -> Count -> IO ()
 baseTestArgs gs lbl p n = simpleTest lbl p (baseSuite gs n)
 
-baseReport      :: (Testable a, Integral k) => Property a -> k -> IO ()
-baseReport p n = baseReportArgs stdTestGens "" p (toInteger n)
-
 baseReportArgs  :: Show a => StandardGens a -> String -> Property a -> Count -> IO ()
 baseReportArgs gs lbl p n = simpleReport lbl p (baseSuite gs n)
-
-baseCheck      :: (Testable a, Integral k) => Property a -> k -> IO ()
-baseCheck p n = baseCheckArgs stdTestGens "" p (toInteger n)
 
 baseCheckArgs  :: Show a => StandardGens a -> String -> Property a -> Count -> IO ()
 baseCheckArgs gs lbl p n = simpleCheck lbl p (baseSuite gs n)
@@ -155,10 +141,11 @@ SimpleTestRun just maps the property evaluation across a ranked |Map| of input
 values to produce a ranked map of |SimpleTestPt| results.
 
 \begin{code}
-simpleTest, simpleReport ::  Show a =>
+simpleTest, simpleReport, simpleCheck ::  Show a =>
            String -> Property a -> MapRankSuite a -> IO ()
 simpleTest   lbl p ts = dspSummary lbl $ simpleTestRun p ts
 simpleReport lbl p ts = dspDetails lbl $ simpleTestRun p ts
+simpleCheck lbl p ts = simpleCheckArgs lbl p ts 1
 
 simpleTestRun :: Show a => Property a -> MapRankSuite a -> SimpleResults a
 simpleTestRun p = fmap (Prelude.map (simpleTestCase p))
@@ -168,12 +155,7 @@ simpleTestRun p = fmap (Prelude.map (simpleTestCase p))
 SimpleCheck runs a monadic test that terminates when finding the first failure.
 SimpleCheckArgs allows the maximum rank and number of failure cases before termination to be set.
 
-\gordon{not yet defined, needs to be a monadic execution with an error response}
-
 \begin{code}
-simpleCheck ::  Show a => String -> Property a -> MapRankSuite a -> IO ()
-simpleCheck lbl p ts = simpleCheckArgs lbl p ts 1
-
 simpleCheckArgs ::  Show a => String -> Property a -> MapRankSuite a -> Int -> IO ()
 simpleCheckArgs lbl p ts k = 
   do putStrLn "SimpleCheck not yet enabled, running all cases using simpleTest"
