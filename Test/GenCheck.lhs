@@ -6,9 +6,8 @@ imported/exported from StructureGens, BaseGens, BaseEnum that can not be
 explicitly shown.
 
 \begin{code}
-module Test.GenCheck 
-( simpleCheck, simpleTest, simpleReport
-, Property, Testable(..)
+module Test.GenCheck (
+  Property, Testable(..)
 , MapRankSuite, TestSuite, suiteMerge, GenInstruct
 , genSuite, testSuite, stdSuite, deepSuite, baseSuite
 , Generator
@@ -28,7 +27,6 @@ module Test.GenCheck
 ) where
 
 import Test.GenCheck.Base.Base (Rank, Count, Property)
-import Test.GenCheck.System.SimpleCheck(simpleTest, simpleReport, simpleCheck)
 import Test.GenCheck.System.TestSuite (MapRankSuite, TestSuite, suiteMerge, 
        GenInstruct, genSuite, testSuite, stdSuite, deepSuite, baseSuite)
 

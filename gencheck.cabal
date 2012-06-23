@@ -1,5 +1,5 @@
 name:           gencheck
-version:        0.1.1
+version:        0.1.2
 cabal-version:  >= 1.6
 license:        BSD3
 license-file:   License.txt
@@ -39,8 +39,8 @@ library
   ghc-options:          -Wall -fno-warn-orphans
 
   exposed-modules:
+    Test.SimpleCheck
     Test.GenCheck
-    Test.GenCheck.System.SimpleCheck
     Test.GenCheck.System.Result
     Test.GenCheck.Generator.Generator
     Test.GenCheck.Generator.Substitution

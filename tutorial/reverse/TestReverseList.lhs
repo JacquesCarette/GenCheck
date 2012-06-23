@@ -9,7 +9,7 @@ and reversing a singleton list has no effect.
 \begin{code}
 module TestReverseList where
 
-import Test.GenCheck.System.SimpleCheck
+import Test.SimpleCheck
 \end{code}
 
 The properties that the revList function must satisfy:
