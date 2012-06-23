@@ -15,7 +15,7 @@ import Test.GenCheck.System.SimpleCheck
 The properties that the revList function must satisfy:
 \begin{itemize}
 \item  propRevUnitEq - the reverse of a singleton list is the original
-\item  propRevRevEq  - reversing the reverse is the original list (idempotency)
+\item  propRevRevEq  - reversing the reverse is the original list (involutive)
 \end{itemize}
 
 Note that the first is a property of individual values and 
