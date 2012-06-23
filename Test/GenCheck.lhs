@@ -7,11 +7,13 @@ explicitly shown.
 
 \begin{code}
 module Test.GenCheck 
-( Property, Rank, Count
-, simpleCheck, simpleTest, simpleReport
+( simpleCheck, simpleTest, simpleReport
+, Property, Testable(..)
 , MapRankSuite, TestSuite, suiteMerge, GenInstruct
 , genSuite, testSuite, stdSuite, deepSuite, baseSuite
-, Generator, Testable(..), StandardGens(..), stdEnumGens
+, Generator
+, StandardGens(..), stdEnumGens
+, Rank, Count
 , Label(..), Enumerated(..), Enumeration
 , listStdGens
 , EnumGC(..)
