@@ -4,14 +4,39 @@
 {-# LANGUAGE TypeFamilies #-}
 
 {- |SimpleCheck provides a series of very simple test programs written against
-the GenCheck framework.  The test suite is pulled from a single generator, uses
-the |map| function to schedule the tests, and reports either pass or fail with
-the failing test cases.  Test cases and results are categorized by rank, and
+the GenCheck framework.  The test suite is pulled from a single generator,
+uses the |map| function to schedule the tests, and reports either pass or 
+fail with the failing test cases.  Test cases and results are categorized by
+rank, and
 stored in a Map.
 
 The functionality is similar to that of QuickCheck and SmallCheck, but the test
 cases can generated using different strategies, including but not limited to
-random and exhaustive generation. -}
+random and exhaustive generation. 
+
+The naming convention for strategies is as follows:
+
+    * the /std/ strategy first exhausts small test cases, combines some uniform
+     and random sampling for &#8220;middle&#8221; sized cases, and 
+     finally tests a small number of random cases up to rank 30.
+
+    * the /deep/ strategy test a few structures of each rank up to rank 60.
+
+    * the /base/ strategy tests /non-structure/ types (only!) where all values
+     are of rank 1.
+
+Each strategy also comes in 3 reporting styles, namely:
+
+    * /Test/ will run all tests and report the number of failures
+
+    * /Check/ will run all tests, but stop at the first failure
+
+    * /Report/ runs all tests, and gives a complete report of what it did
+
+There is a further set of options for each of the above, with /Args/
+appended to the name, for further control.  See below for details.
+-}
+
 module Test.SimpleCheck (
 -- * Simple top-level interface
 -- ** Type
@@ -60,20 +85,12 @@ import Test.GenCheck.Generator.BaseEnum()
 \end{code}
 
 The following test programs use a heuristic strategy over the standard
-generators (exhaustive, boundary, uniform and random) to create the test suites
+generators (exhaustive, extreme, uniform and random) to create the test suites
 for a property.
 
 If the property input type is an instance of Testable, there is a default
 implementation of the test that sets an arbitrary maximum rank for the test
 cases and uses the standard generators from Testable.
-
-\begin{description}
-\item [stdTest]  exhausts small test cases, combines uniform and random
-sampling for ``middle'' size cases, and finally tests a small number of random
-values up to rank 30
-\item [deepTest] tests a few structures of each rank up to rank 60
-\item [baseTest] tests base (non-structure) types where all values are of rank 1
-\end{description}
 
 stdTestArgs and deepTestArgs expose the maximum rank parameter and take the
 standard generators as arguments so alternative generators can be provided (the
@@ -84,12 +101,18 @@ The stdReport, deepReport, etc. test schedulers are the same, but they print
 out all of the test cases, highlighting the failure cases.
 
 \begin{code}
-stdTest,stdReport,stdCheck :: (Testable a, Integral k)  => Property a -> k -> IO ()
+stdTest,stdReport,stdCheck,deepTest,deepReport,deepCheck :: 
+    (Testable a, Integral k)  => Property a -> k -> IO ()
 stdTest p n = stdTestArgs stdTestGens "" 30 p (toInteger n)
 stdReport p n = stdReportArgs stdTestGens "" 30 p (toInteger n)
 stdCheck p n = stdCheckArgs stdTestGens "" 30 p (toInteger n)
+deepTest p n = deepTestArgs stdTestGens "" 60 p (toInteger n)
+deepReport p n = deepReportArgs stdTestGens "" 60 p (toInteger n)
+deepCheck p n = deepCheckArgs stdTestGens "" 60 p (toInteger n)
 
-stdTestArgs,stdReportArgs,stdCheckArgs :: Show a => StandardGens a -> String -> Rank -> Property a -> Count -> IO ()
+stdTestArgs,stdReportArgs,stdCheckArgs,deepTestArgs,
+    deepReportArgs,deepCheckArgs :: Show a => 
+        StandardGens a -> String-> Rank -> Property a -> Count -> IO ()
 stdTestArgs  gs lbl r p n = 
   do s <- System.Random.newStdGen
      simpleTest lbl p (stdSuite gs s r n)
@@ -100,13 +123,6 @@ stdCheckArgs  gs lbl r p n =
   do s <- System.Random.newStdGen
      simpleCheck lbl p (stdSuite gs s r n)
 
-deepTest,deepReport,deepCheck :: (Testable a, Integral k)  => Property a -> k -> IO ()
-deepTest p n = deepTestArgs stdTestGens "" 60 p (toInteger n)
-deepReport p n = deepReportArgs stdTestGens "" 60 p (toInteger n)
-deepCheck p n = deepCheckArgs stdTestGens "" 60 p (toInteger n)
-
-deepTestArgs,deepReportArgs,deepCheckArgs :: Show a => 
-    StandardGens a -> String-> Rank -> Property a -> Count -> IO ()
 deepTestArgs  gs lbl r p n = 
   do s <- newStdGen
      simpleTest lbl p (deepSuite gs s r n)
@@ -130,7 +146,6 @@ baseCheckArgs gs lbl p n  = simpleCheck lbl p (baseSuite gs n)
 
 simpleTest takes the test suite as input and evaluates the property at 
 all of the test values, with just the failures reported.
-simpleResult is the same but all of the test cases are reported.
 
 SimpleTestRun just maps the property evaluation across a ranked |Map| of input
 values to produce a ranked map of |SimpleTestPt| results.
