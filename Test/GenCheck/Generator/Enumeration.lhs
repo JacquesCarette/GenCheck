@@ -19,10 +19,10 @@ mechanism for generating and reporting values.
 
 Two flavours of enumerations are provided in the GenCheck package:
 
-\begin{enumeration}
+\begin{enumerate}
 \item Haskell base (or scalar) types 
 \item Haskell regular polynomial types (i.e. non-nested Haskell types)
-\end{enumeration}
+\end{enumerate}
 
 The rank of all base types such as |Int| and |Char| is 1, and the rank of
 regular polynomial data types is the number of holes for data elements in the
