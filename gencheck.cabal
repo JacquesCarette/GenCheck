@@ -26,6 +26,12 @@ description:
 	Generators can be composed or combined in parallel to create
 	composite strategies for data sampling.
 
+test-suite install-tests
+    type:       exitcode-stdio-1.0
+    main-is:    Test/GenCheck/Tests/Install.lhs
+    build-depends: base,
+                   HUnit >= 1.0
+
 library
   build-depends:        combinat >= 0.2,
                         base >=3 && <5,

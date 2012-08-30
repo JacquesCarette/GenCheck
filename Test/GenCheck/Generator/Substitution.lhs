@@ -136,7 +136,7 @@ substStdGenN n (StdGens g1 g2 g3 g4 False) g =
       gx = substN n g2 g
       gu k = substN n (g3 k) g
       gr s = substN n (g4 s) g
-  in StdGens ga gx gu gr True
+  in StdGens ga gx gu gr False
 substStdGenN _ _ _ = error "Can only substituted into ranked"
 
 substStdGenAll :: Structure c => StandardGens (c a) -> Generator b -> StandardGens (c b)
@@ -145,7 +145,7 @@ substStdGenAll (StdGens g1 g2 g3 g4 False) g =
       gx = substAll g2 g
       gu k = substAll (g3 k) g
       gr s = substAll (g4 s) g
-  in StdGens ga gx gu gr True
+  in StdGens ga gx gu gr False
 substStdGenAll _ _ = error "Can only substitute into ranked"
 \end{code}
 
@@ -189,6 +189,6 @@ subst2StdGen (StdGens g1 g2 g3 g4 False) ga' gb' =
       gx = subst2 g2 ga' gb'
       gu k = subst2 (g3 k) ga' gb'
       gr s = subst2 (g4 s) ga' gb'
-  in StdGens ga gx gu gr True
+  in StdGens ga gx gu gr False
 subst2StdGen _ _ _ = error "Can only substitute into ranked"
 \end{code}

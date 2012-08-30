@@ -61,10 +61,12 @@ module Test.SimpleCheck (
 , baseTestArgs
 , baseReportArgs
 , baseCheckArgs
--- * General interface for (simple) testing
+-- * General interface for (simple) testing with output to terminal
 , simpleTest
 , simpleReport
 , simpleCheck
+-- * General interface for a pure (non-monadic) computation returning a result
+, simplePure
 ) where
 
 import System.Random (newStdGen)
@@ -147,18 +149,18 @@ baseCheckArgs gs lbl p n  = simpleCheck lbl p (baseSuite gs n)
 simpleTest takes the test suite as input and evaluates the property at 
 all of the test values, with just the failures reported.
 
-SimpleTestRun just maps the property evaluation across a ranked |Map| of input
+SimpleTestPure just maps the property evaluation across a ranked |Map| of input
 values to produce a ranked map of |SimpleTestPt| results.
 
 \begin{code}
 simpleTest, simpleReport, simpleCheck ::  Show a =>
            String -> Property a -> MapRankSuite a -> IO ()
-simpleTest   lbl p ts = dspSummary lbl $ simpleTestRun p ts
-simpleReport lbl p ts = dspDetails lbl $ simpleTestRun p ts
+simpleTest   lbl p ts = dspSummary lbl $ simplePure p ts
+simpleReport lbl p ts = dspDetails lbl $ simplePure p ts
 simpleCheck lbl p ts  = simpleCheckArgs lbl p ts 1
 
-simpleTestRun :: Show a => Property a -> MapRankSuite a -> SimpleResults a
-simpleTestRun p = fmap (Prelude.map (simpleTestCase p))
+simplePure :: Show a => Property a -> MapRankSuite a -> SimpleResults a
+simplePure p = fmap (Prelude.map (simpleTestCase p))
 \end{code}
 
 SimpleCheck runs a monadic test that terminates when finding the first failure.
@@ -168,10 +170,8 @@ SimpleCheckArgs allows the maximum rank and number of failure cases before termi
 simpleCheckArgs ::  Show a => String -> Property a -> MapRankSuite a -> Int -> IO ()
 simpleCheckArgs lbl p ts k = 
   do putStrLn "SimpleCheck not yet enabled, running all cases using simpleTest"
-     dspSummary lbl $ simpleCheckRun p ts k
+     dspSummary lbl $ simplePure p ts
 
-simpleCheckRun :: Show a => Property a -> MapRankSuite a -> Int -> SimpleResults a
-simpleCheckRun p ste _ = simpleTestRun p ste
 \end{code}
 
 Simple test results are stored in a |SimpleTestPt| structure,

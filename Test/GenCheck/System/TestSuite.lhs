@@ -69,9 +69,10 @@ baseSuite is used for base type generators; all values are of rank 1.
 
 \begin{code}
 baseSuite :: StandardGens a -> Count -> MapRankSuite a
-baseSuite (StdGens g _ _ _ True) n = 
-  let gis =  [(1, n)]
-  in  testSuite [g] (repeat gis)
+baseSuite (StdGens ga gx _ _ True) n = 
+  let n2 = n `div` 2
+      gis =  [(1, n2)]
+  in  testSuite [ga , gx] (repeat gis)
 baseSuite _ _ = error "baseSuite applied to a Ranked Generator"
 \end{code}
 
