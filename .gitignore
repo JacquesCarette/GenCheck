@@ -7,3 +7,5 @@ dist/
 *.DS_Store
 *.log
 
+
+Test/GenCheck/Tests/Install
