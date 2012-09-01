@@ -88,6 +88,7 @@ stdSuite (StdGens g1 g2 g3 g4 False) s rmax n =
       gis =  [(r, nr) | r <- [1..rmax]]
       uni = fromInteger $ max (nr `div` 4 + 1) 3
   in  testSuite [g1, g2, g3 uni, g4 s] (repeat gis)
+stdSuite (StdGens _ _ _ _ True) _ _ _ = error "stdSuite applied incorrectly?"
 \end{code}
 
 deepSuite performs a small number of tests over each rank up to a maximum size,

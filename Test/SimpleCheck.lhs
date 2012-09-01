@@ -168,7 +168,7 @@ SimpleCheckArgs allows the maximum rank and number of failure cases before termi
 
 \begin{code}
 simpleCheckArgs ::  Show a => String -> Property a -> MapRankSuite a -> Int -> IO ()
-simpleCheckArgs lbl p ts k = 
+simpleCheckArgs lbl p ts _ = 
   do putStrLn "SimpleCheck not yet enabled, running all cases using simpleTest"
      dspSummary lbl $ simplePure p ts
 
