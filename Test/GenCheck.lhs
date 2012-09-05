@@ -10,6 +10,7 @@ module Test.GenCheck (
   Property, Testable(..)
 , MapRankSuite, TestSuite, suiteMerge, GenInstruct
 , genSuite, testSuite, stdSuite, deepSuite, baseSuite
+, gcPureTest, gcPureTestable, gcPureTestDeep, gcPureTestBase, GCResults, GCTestPt
 , Generator
 , StandardGens(..), stdEnumGens
 , Rank, Count
@@ -29,7 +30,8 @@ module Test.GenCheck (
 import Test.GenCheck.Base.Base (Rank, Count, Property)
 import Test.GenCheck.System.TestSuite (MapRankSuite, TestSuite, suiteMerge, 
        GenInstruct, genSuite, testSuite, stdSuite, deepSuite, baseSuite)
-
+import Test.GenCheck.PureTest (gcPureTest, gcPureTestable, 
+            gcPureTestDeep, gcPureTestBase, GCResults, GCTestPt)
 import Test.GenCheck.Generator.Generator (Generator, Testable(..), 
             StandardGens(..),stdEnumGens)
 import Test.GenCheck.Generator.StructureGens(listStdGens) -- instances of Testable

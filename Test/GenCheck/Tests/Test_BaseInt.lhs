@@ -17,7 +17,7 @@ import Test.GenCheck.Generator.BaseGens
 import Test.GenCheck.Generator.Generator (Generator, StandardGens(..))
 import Test.GenCheck.System.TestSuite(MapRankSuite, baseSuite)
 
-import Test.GenCheck.Tests.PureTest
+import Test.GenCheck.PureTest (gcPureTest)
 
 stdIntGens = 
   let rng = (-100,100) 

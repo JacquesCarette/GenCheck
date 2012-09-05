@@ -5,7 +5,7 @@ import System.Random(mkStdGen, StdGen)
 
 import Test.GenCheck 
 import Test.GenCheck.Generator.BaseGens (genIntAll, genLowCharAll, genUpperCharRnd)
-import Test.GenCheck.Tests.PureTest
+import Test.GenCheck.PureTest(gcPureTest, gcPureTestable, GCResults)
 
 -- the specification, module, and GenCheck instances for the Zipper data type
 import Test.GenCheck.Tests.ListZipper.PropListZip

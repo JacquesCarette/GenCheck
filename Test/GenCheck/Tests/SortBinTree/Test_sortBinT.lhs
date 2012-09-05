@@ -24,7 +24,7 @@ import Test.GenCheck.Generator.Substitution (substStdGenAll)
 import Test.GenCheck.Tests.SortBinTree.SortBinTree
 import Test.GenCheck.Tests.SortBinTree.BinTree_GC 
 import Test.GenCheck.Tests.SortBinTree.Properties_SortBinT
-import Test.GenCheck.Tests.PureTest
+import Test.GenCheck.PureTest (gcPureTest) 
 
 \end{code}
 
