@@ -19,7 +19,7 @@ propShape:   the tree's shape does not change during sorting
 
 \begin{code}
 
-module Test.GenCheck.Tests.Properties_SortBinT 
+module Test.GenCheck.Tests.SortBinTree.Properties_SortBinT 
 ( propSorted
 , propShape
 , sorted -- wouldn't normally be exported, but I use this for a failing test
@@ -27,7 +27,8 @@ module Test.GenCheck.Tests.Properties_SortBinT
 ) where
 
 import Test.GenCheck (Property)
-import Test.GenCheck.Tests.SortBinTree(BinTree(..), sortBinTree, biggest, smallest)
+import Test.GenCheck.Tests.SortBinTree.SortBinTree
+                (BinTree(..), sortBinTree, biggest, smallest)
 
 propSorted :: (Ord a) => Property (BinTree a)
 propSorted = sorted . sortBinTree

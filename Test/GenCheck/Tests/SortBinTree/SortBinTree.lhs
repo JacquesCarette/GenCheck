@@ -9,7 +9,7 @@ Note that an instance of show has been provided for BinT;
 this is a requirement for the SimpleCheck reporting.
 
 \begin{code}
-module Test.GenCheck.Tests.SortBinTree where
+module Test.GenCheck.Tests.SortBinTree.SortBinTree where
 
 data BinTree a = BTNode a | BTBr (BinTree a) (BinTree a)
 instance Functor BinTree where

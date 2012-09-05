@@ -12,54 +12,63 @@ import Test.GenCheck.System.Result as GCR
 
 import Test.GenCheck.Tests.TestReverseList
 import Test.GenCheck.Tests.Test_BaseInt
-import Test.GenCheck.Tests.Test_SortBinT
+import Test.GenCheck.Tests.SortBinTree.Test_SortBinT
+import Test.GenCheck.Tests.ListZipper.TestListZipper
+
+boolTestCase lbl test = 
+  TestLabel lbl $ TestCase $ assertBool lbl (GCR.result test)
+boolFalseTestCase lbl test = 
+  TestLabel lbl $ TestCase $ assertBool lbl (not (GCR.result test))
 
 \end{code}
 
 Reverse list tests.
 
 \begin{code}
-testRL1 = TestCase $ assertBool "reverse involution test" (GCR.result testRevRev1)
-testRU1 = TestCase $ assertBool "reverse unit equality test" (GCR.result testRevUnit1)
-testRF1 = TestCase $ assertBool "must fail, rev xs == xs" 
-                                (not (GCR.result testRevFail1))
-testsRev = TestList 
-  [ TestLabel "reverse involution" testRL1
-  , TestLabel "Testing singleton reverse equality" testRU1
-  , TestLabel "Test should fail, rev xs == xs" testRF1
-  ]
+testRL1 = boolTestCase "reverse involution test"      testRevRev1
+testRU1 = boolTestCase "reverse unit equality test"   testRevUnit1
+testRF1 = boolFalseTestCase "must fail, rev xs == xs" testRevFail1
+testsRev = TestList [ testRL1, testRU1, testRF1 ]
 
 \end{code}
 
 Integer (base type) test.
 
 \begin{code}
-testBase1 n = TestCase $ assertBool "fail - under 100" 
-                           (not (GCR.result (testIntLT100_fail n)))
+testBase1 n = boolFalseTestCase "fail - under 100" (testIntLT100_fail n)
 
-testsBase n = TestList 
-  [ TestLabel "Catch failure for all Ints < 100" (testBase1 n)
-  ]
+testsBase n = TestList [ (testBase1 n) ]
 
 \end{code}
 
 Sorting a binary tree.
 
 \begin{code}
-testSort1 s r n = TestCase $ assertBool "random node binary tree sort" 
-                             (GCR.result (testBTSort_RandNode s r n))
+testSort1 s r n = boolTestCase "random node binary tree sort" 
+                         (testBTSort_RandNode s r n)
 
-testSort2 s r n = TestCase $ assertBool "extreme node binary tree sort" 
-                             (GCR.result (testBTSort_XtrmNode s r n))
-testSortFail s r n = TestCase $ assertBool "random node unsorted should fail"
-                           (not (GCR.result (failBTSort_RandNode s r n)))
+testSort2 s r n = boolTestCase "extreme node binary tree sort" 
+                         (testBTSort_XtrmNode s r n)
+testSortFail s r n = boolFalseTestCase "random node unsorted should fail"
+                         (failBTSort_RandNode s r n)
 
 testsSort (s1,s2,s3) r n = TestList
- [ TestLabel "Sort random node binary tree" $ testSort1 s1 r n
- , TestLabel "Sort extreme valued node binary tree" $ testSort2 s2 r n
- , TestLabel "Catch unsorted random node binary tree" $ testSortFail s3 r n
- ]
+ [ testSort1 s1 r n, testSort2 s2 r n, testSortFail s3 r n ]
 
+\end{code}
+
+Testing a zippered list structure (from Tutorial 2)
+
+\begin{code}
+testListZip1 s r n = boolTestCase "Compare concatenating strings with right fold"
+                        (testFoldrz s r n)
+testListZip2 s r n = boolTestCase "Compare sum over integer list to left fold"
+                        (testFoldlz s r n)
+testListZip3 r =     boolTestCase "compare insert / delete with replace"
+                        (testInsDelRepl r)
+
+testsListZip (s1,s2) r n = TestList 
+  [ testListZip1 s1 r n, testListZip2 s2 r n, testListZip3 r]
 \end{code}
 
 Main test program.
@@ -72,6 +81,9 @@ main = do runTestTT testsRev
           s2 <- newStdGen
           s3 <- newStdGen
           runTestTT $ testsSort (s,s2,s3) 10 300
+          s4 <-newStdGen
+          s5 <- newStdGen
+          runTestTT $ testsListZip (s4,s5) 10 100
           exitSuccess
 
 \end{code}

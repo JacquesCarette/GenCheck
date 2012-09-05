@@ -55,15 +55,12 @@ of the specification for this module, with a focus on the generators for the new
 \subsection{Specifications and Properties}
 A GenCheck specification is the collection of properties
 that any implementation of the specification must satisfy.
-Properties are univariate Boolean valued Haskell functions,
-where the input value may be of an arbitrarily complicated type 
-i.e. an uncurried predicate. The GenCheck test programs accept 
+Properties are univariate Boolean valued Haskell functions;
+this is not a restriction as the input value may be of an arbitrarily complicated type 
+to support uncurried predicates. The GenCheck test programs accept 
 a single property and test it over the defined suite of test cases.
 Only one property is tested per call because different properties 
 may have different input types or require different test suites
-\footnote{a slight modification of the test programs would 
-allow multiple properties to be tested, part of the intent 
-of the GenCheck framework'}.
 The specification module would normally be separate from the implementation,
 but may include functions that test the properties using GenCheck.
 

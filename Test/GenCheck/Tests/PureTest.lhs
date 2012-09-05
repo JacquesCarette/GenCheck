@@ -7,15 +7,26 @@ which allow access to the test result and input value respectively.
 {-# LANGUAGE TypeFamilies #-}
 
 module Test.GenCheck.Tests.PureTest
- (  gcPureTest
+ ( gcPureTest
+ , gcPureTestable
  , GCResults
  , gcTestCase
  , GCTestPt(..)
  ) where
 
+import System.Random (StdGen)
+
 import Test.GenCheck.Base.Datum
 import Test.GenCheck.Base.Verdict
 import Test.GenCheck
+
+-- The default pure test is the standard test suite of the requested test cases,
+-- up to rank r, for instances of the Testable class.
+gcPureTestable :: (Testable a, Integral k)  => 
+      Property a -> StdGen -> Rank -> k -> GCResults a
+gcPureTestable p s r n = 
+  let ts = stdSuite stdTestGens s r (toInteger n)
+  in  gcPureTest p ts
 
 gcPureTest :: Show a => Property a -> MapRankSuite a -> GCResults a
 gcPureTest p = fmap (Prelude.map (gcTestCase p))

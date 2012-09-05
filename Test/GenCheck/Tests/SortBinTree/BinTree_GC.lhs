@@ -6,7 +6,7 @@ but the external (stand alone) versions of those methods are also exported.
 \begin{code}
 {-# LANGUAGE FlexibleInstances,FlexibleContexts  #-}
 
-module Test.GenCheck.Tests.BinTree_GC 
+module Test.GenCheck.Tests.SortBinTree.BinTree_GC 
 ( substBinTree
 , eBinTree
 ) where
@@ -19,7 +19,7 @@ import Test.GenCheck.Generator.Enumeration
 import Test.GenCheck.Generator.Enumeration (Label(..))
 import Test.GenCheck.Generator.Substitution (Structure(..))
 
-import Test.GenCheck.Tests.SortBinTree (BinTree(..))
+import Test.GenCheck.Tests.SortBinTree.SortBinTree (BinTree(..))
 
 \end{code}
 
