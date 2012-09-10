@@ -104,7 +104,7 @@ out all of the test cases, highlighting the failure cases.
 
 \begin{code}
 stdTest,stdReport,stdCheck,deepTest,deepReport,deepCheck :: 
-    (Testable a, Integral k)  => Property a -> k -> IO ()
+    (Testable a, Integral k)  => Property a -> k -> IO (SimpleResults a)
 stdTest p n = stdTestArgs stdTestGens "" 30 p (toInteger n)
 stdReport p n = stdReportArgs stdTestGens "" 30 p (toInteger n)
 stdCheck p n = stdCheckArgs stdTestGens "" 30 p (toInteger n)
@@ -113,8 +113,8 @@ deepReport p n = deepReportArgs stdTestGens "" 60 p (toInteger n)
 deepCheck p n = deepCheckArgs stdTestGens "" 60 p (toInteger n)
 
 stdTestArgs,stdReportArgs,stdCheckArgs,deepTestArgs,
-    deepReportArgs,deepCheckArgs :: Show a => 
-        StandardGens a -> String-> Rank -> Property a -> Count -> IO ()
+    deepReportArgs,deepCheckArgs :: (Show a) => 
+        StandardGens a -> String-> Rank -> Property a -> Count -> IO (SimpleResults a)
 stdTestArgs  gs lbl r p n = 
   do s <- System.Random.newStdGen
      simpleTest lbl p (stdSuite gs s r n)
@@ -135,12 +135,13 @@ deepCheckArgs  gs lbl r p n =
   do s <- newStdGen
      simpleCheck lbl p (deepSuite gs s r n)
 
-baseTest,baseReport,baseCheck :: (Testable a, Integral k) => Property a -> k -> IO ()
+baseTest,baseReport,baseCheck :: (Testable a, Integral k) => Property a -> k -> IO (SimpleResults a)
 baseTest p n   = baseTestArgs stdTestGens "" p (toInteger n)
 baseReport p n = baseReportArgs stdTestGens "" p (toInteger n)
 baseCheck p n  = baseCheckArgs stdTestGens "" p (toInteger n)
 
-baseTestArgs,baseReportArgs,baseCheckArgs  :: Show a => StandardGens a -> String -> Property a -> Count -> IO ()
+baseTestArgs,baseReportArgs,baseCheckArgs  :: (Show a) => 
+                       StandardGens a -> String -> Property a -> Count -> IO (SimpleResults a)
 baseTestArgs gs lbl p n   = simpleTest lbl p (baseSuite gs n)
 baseReportArgs gs lbl p n = simpleReport lbl p (baseSuite gs n)
 baseCheckArgs gs lbl p n  = simpleCheck lbl p (baseSuite gs n)
@@ -153,24 +154,36 @@ SimpleTestPure just maps the property evaluation across a ranked |Map| of input
 values to produce a ranked map of |SimpleTestPt| results.
 
 \begin{code}
-simpleTest, simpleReport, simpleCheck ::  Show a =>
-           String -> Property a -> MapRankSuite a -> IO ()
-simpleTest   lbl p ts = dspSummary lbl $ simplePure p ts
-simpleReport lbl p ts = dspDetails lbl $ simplePure p ts
+
+simpleTest, simpleReport, simpleCheck ::  (Show a) =>
+           String -> Property a -> MapRankSuite a -> IO (SimpleResults a)
+simpleTest   lbl p ts = 
+  do let r = simplePure p ts
+     dspSummary lbl r
+     return r
+simpleReport lbl p ts = 
+  do let r = simplePure p ts
+     dspDetails lbl r
+     return r
 simpleCheck lbl p ts  = simpleCheckArgs lbl p ts 1
 
-simplePure :: Show a => Property a -> MapRankSuite a -> SimpleResults a
-simplePure p = fmap (Prelude.map (simpleTestCase p))
 \end{code}
 
 SimpleCheck runs a monadic test that terminates when finding the first failure.
 SimpleCheckArgs allows the maximum rank and number of failure cases before termination to be set.
 
 \begin{code}
-simpleCheckArgs ::  Show a => String -> Property a -> MapRankSuite a -> Int -> IO ()
+
+simpleCheckArgs ::  (Show a) => 
+                     String -> Property a -> MapRankSuite a -> Int -> IO (SimpleResults a)
 simpleCheckArgs lbl p ts _ = 
   do putStrLn "SimpleCheck not yet enabled, running all cases using simpleTest"
-     dspSummary lbl $ simplePure p ts
+     let res =  simplePure p ts
+     dspSummary lbl res
+     return res
+
+simplePure :: Show a => Property a -> MapRankSuite a -> SimpleResults a
+simplePure p = fmap (Prelude.map (simpleTestCase p))
 
 \end{code}
 
