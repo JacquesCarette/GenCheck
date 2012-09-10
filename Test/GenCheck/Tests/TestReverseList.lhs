@@ -71,13 +71,13 @@ is supplied here in this function, so the random values will always be identical
 from test to test.  genSuite builds the test suite from a single generator
 
 \begin{code}
-testRevRev1 = 
+testRevRev1 =
   let ts = genSuite gIntLists [(r,1) | r <- [1..30]] 
-  in gcPureTest propRevRevEq ts
+  in  simpleTest "Test rev (rev x) == x with integer lists up to size 30" propRevRevEq ts
 
 testRevUnit1 = 
   let ts = genSuite (gRndInts (mkStdGen 54698735)) [(1, 100)]
-  in gcPureTest propRevUnitEq ts
+  in simpleTest "Test that rev[x] = [x] for any x with random integers" propRevUnitEq ts
 
 \end{code}
 
@@ -89,6 +89,6 @@ propRevFail xs =  revList xs == xs
 testRevFail1 = 
   let lbl = "Testing reverse list = list, should fail to rank 5 with unique elements"
       ts =  genSuite gIntLists [(r,2) | r<-[1..5]]
-  in gcPureTest propRevFail ts
+  in simpleTest lbl propRevFail ts
 \end{code}
 

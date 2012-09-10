@@ -25,7 +25,7 @@ genValZip_Char r =
       gz = genAll genZip_Char -- exhaustive zipper generator
   in zip (gc 1) (gz r) -- (Char, Zipper Char) generator with random Char, exhaustive zippers
 
-testFoldrz_1, testFoldrz_2 :: Rank -> Count -> IO ()
+testFoldrz_1, testFoldrz_2 :: Rank -> Count -> IO (r)
 testFoldrz_1 r n = 
   let propFoldrz_str = propFoldrz (:) "" :: Property (Zipper Char)
       lbl = "Compare concatenating strings with right fold, up to rank " ++ (show r)
@@ -35,7 +35,7 @@ testFoldrz_2 r n =
       lbl = "Compare concatenating strings with right fold, up to rank " ++ (show r)
   in  stdReportArgs genZip_Char lbl r propFoldrz_str n
 
-testFoldlz_1, testFoldlz_2 :: Rank -> Count -> IO ()
+testFoldlz_1, testFoldlz_2 :: Rank -> Count -> IO (r)
 testFoldlz_1 r n = 
   let propFoldlz_sum = propFoldlz (+) 0 :: Property [Int]
       lbl = "Compare sum over integer list to left fold, up to rank " ++ (show r)
@@ -45,7 +45,7 @@ testFoldlz_2 r n =
       lbl = "Compare sum over integer list to left fold, up to rank " ++ (show r)
   in  stdReport propFoldlz_sum n
 
-testInsDelRepl_1 :: Rank -> IO ()
+testInsDelRepl_1 :: Rank -> IO (r)
 testInsDelRepl_1 r = 
   let lbl = "Compare insert/delete to replace, up to rank " ++ (show r)
       -- do up to maxr tests for zippers up to rank maxr
