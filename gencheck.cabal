@@ -29,7 +29,6 @@ description:
 test-suite install-tests
     type:       exitcode-stdio-1.0
     main-is:    Test/GenCheck/Tests/Install.lhs
-    hs-source-dirs: Test/GenCheck/Tests
     build-depends: base,
                    HUnit >= 1.0
 

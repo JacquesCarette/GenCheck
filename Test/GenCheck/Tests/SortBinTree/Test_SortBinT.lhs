@@ -24,7 +24,7 @@ import Test.GenCheck.Generator.Substitution (substStdGenAll)
 import Test.GenCheck.Tests.SortBinTree.SortBinTree
 import Test.GenCheck.Tests.SortBinTree.BinTree_GC 
 import Test.GenCheck.Tests.SortBinTree.Properties_SortBinT
-import Test.GenCheck.PureTest (gcPureTest) 
+import Test.SimpleCheck(simpleTest)
 
 \end{code}
 
@@ -82,12 +82,12 @@ testBTSort_RandNode s r n =
     let lbl = "Test sorting with random integer node trees, up to size " ++ show r
         (s1,s2) = split s
         ts = stdSuite (btGensR s1) s2 r n 
-    in gcPureTest propSorted ts
+    in simpleTest "" propSorted ts
 
 testBTSort_XtrmNode s r n = 
     let lbl = "Test sorting with boundary integer node trees, up to size " ++ show r
         ts = stdSuite btGensX s r n 
-    in gcPureTest propSorted ts
+    in simpleTest "" propSorted ts
 
 \end{code}
 
@@ -100,6 +100,6 @@ failBTSort_RandNode s r n =
     let lbl = "This should fail when an unsorted tree is found."
         (s1,s2) = split s
         ts = stdSuite (btGensR s1) s2 r n 
-    in gcPureTest sorted ts
+    in simpleTest "" sorted ts
 
 \end{code}

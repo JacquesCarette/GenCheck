@@ -10,7 +10,7 @@ import Test.GenCheck.Generator.StructureGens (genListOf)
 import Test.GenCheck.Generator.BaseGens(genBaseRangeAll, genIntRnd)
 import Test.GenCheck.System.TestSuite (GenInstruct, deepSuite, genSuite)
 
-import Test.GenCheck.PureTest (gcPureTest)
+import Test.SimpleCheck (simpleTest)
 
 \end{code}
 

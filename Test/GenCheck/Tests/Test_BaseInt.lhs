@@ -17,7 +17,7 @@ import Test.GenCheck.Generator.BaseGens
 import Test.GenCheck.Generator.Generator (Generator, StandardGens(..))
 import Test.GenCheck.System.TestSuite(MapRankSuite, baseSuite)
 
-import Test.GenCheck.PureTest (gcPureTest)
+import Test.SimpleCheck(simpleTest)
 
 stdIntGens = 
   let rng = (-100,100) 
@@ -31,6 +31,6 @@ propUnder100 = (< 100)
 -- Should fail when finding value 100
 testIntLT100_fail n = 
   let ts = baseSuite stdIntGens n
-  in  gcPureTest  propUnder100 ts
+  in  simpleTest "" propUnder100 ts
 
 \end{code}
