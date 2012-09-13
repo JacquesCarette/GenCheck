@@ -6,6 +6,6 @@ dist/
 *.tar
 *.DS_Store
 *.log
-
+*.pdf
 
 Test/GenCheck/Tests/Install

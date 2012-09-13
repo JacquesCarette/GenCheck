@@ -70,14 +70,11 @@ but may include functions that test the properties using GenCheck.
 
 \subsection{Test Suites and Standard Generators}
 The module System.TestSuite contains functions that assemble test suites 
-from one or more test case generators, including three that should seem familiar: 
-stdSuite, deepSuite and baseSuite.  These suite builders take a collection of 
-``standard'' generators and a set of instructions in the form of  a list of rank, count pairs.  
+from one or more test case generators. These suite builders take a collection of 
+``standard'' generators and a set of ``generator instructions'', a list of rank, count pairs.  
 The allocation of test cases to ranks through these instructions is called a ``test strategy'' 
 and can be used independently of the type of data being generated, 
 assuming that the standard generators are available for that type.
-The System.SimpleCheck module test suites are test cases stored in 
-a Haskell Map (as in Data.Map) indexed by rank, called a MapRankSuite.
 
 A GenCheck generator is any function from a rank (positive integer) to a list of values.
 Generators may be finite or infinite, may include duplicates of the same value,
@@ -90,34 +87,99 @@ The so called standard generators are just four different sampling strategies
 that can be applied to an enumeration of the generated type.  These are:
 
 \begin{description}
-\item[exhaustive] {Produces all of the values of the specified rank in a sequence}
-\item[extreme]{Starts with the boundary cases, then the middle, then progressively splits the intervals}
-\item[uniform]{Select the specified number elements at uniform intervals through the enumeration}
-\item[random]{Use the random generator to pick an infinite list of values}
+\item[exhaustive] {Produces all of the values of the specified rank in a sequence,}
+\item[extreme]{Alternating lowest and highest values in the enumeration,}
+\item[uniform]{Select the specified number elements at uniform intervals through the enumeration,}
+\item[random]{Use the random generator to pick an infinite list of values.}
 \end{description}
 
+The basis for the test suites used by SimpleCheck test programs
+are the standard generator set described above.
 These are not the only valuable sampling strategies that could be used, but these were
 selected as the ``standard'' generator strategies to be used by the GenCheck API.
-The standard generator set is the basis for the test suites used by SimpleCheck test programs,
-the TestSuite module, and most of the higher level API functions as the default generators.
 A type is an instance of Testable if a set of standard generators is available for it;
 these generators can be constructed for any type that has an Enumeration associated with it. 
 
+A test suite is a collection of test cases selected from the ranks of one or more generators.
+Each test suite uses a sampling ``strategy'' to decide which generators and
+at what rank to select the test cases; this mix is called the test strategy.  
+The SimpleCheck test strategies draw test cases from 
+the four standard generator strategies to provide a good sampling 
+of the test cases relative to the number of tests performed.
+The strategies are heuristic of course, and the optimal composition of a test strategy
+depends on the nature of the structures and properties  being tested,
+so these provided test suite strategies are really just a starting point.
+The TestSuite module contains the test suite building functions:
+
+\begin{description}
+\item[stdSuite] exhaustive testing for smaller structures, then the boundary elements
+and a mix of uniformly and randomly selected values to the specified maximum rank 
+\item[deepSuite] similar to standard but for ``narrow'' structures with fewer elements per rank
+(i.e. a binary tree or list), so the exhaustive testing goes to a much higher rank
+\item[baseSuite] a test suite for base types, where the rank is always 1
+\end{description}
+
+The System.SimpleCheck module test suites are test cases stored in 
+a Haskell map (as in Data.Map) indexed by rank, called a MapRankSuite.
+
 \subsubsection{Enumerating New Data Types}
-A GenCheck enumeration is a way of ordering the values of a type.
-For base types such as Int and Char, this is called a base enumeration (BaseEnum)
-and is effectively the same as the Haskell Enum class;
-the GenCheck class is called EnumGC to highlight that it is an extension of Enum.
-For structure types, the enumeration is first partitioned into finite subsets
-by the number of elements in the structure (called the rank),
-and then the subset is ordered and indexed.
-Structure types that are enumerated are instances of the Enumerated class.
+A GenCheck enumeration is a way of ordering the values of a type,
+and is used as the basis for the standard test case generators in GenCheck.
+A generator can be any function that produces a list of values of the generated type.
+Since the values are in a list, the generator must order those elements,
+and the GenCheck enumerations are one way to provide a consistent index over the values.
+Note that generators do not have to provide all of the possible values of the type,
+nor is there a restriction against providing multiple instances of a value in any given list,
+so the position of an element in a generator's output is not generally the same as an enumeration.
+
+Haskell structure types can be recursively defined and therefore arbitrarily large,
+even infinitely large with lazy evaluation.  To allow any sort of ordering of these infinite sets,
+the values are first partitioned into finite subsets by the number of elements in the structure, 
+which is called the rank of the structure.  The common sized elements in the subset 
+are then ordered and indexed using a depth first, sum of products view of the values.
+This allows most (any regularly recursive polynomial) structure type to be enumerated
+using a two tiered (rank, integer index) pair.  Structure types that are enumerated are 
+instances of the Enumerated class, which provides methods to count and select (construct)
+values of the specified rank and index.
+
+A base type, such as Int or Char, do not have a rank and are enumerated if there is a
+single ordering over all of the elements of that type.  This is called a base enumeration (BaseEnum)
+and is effectively the same as the Haskell Enum class; the GenCheck class is called EnumGC 
+to highlight that it is an extension of Enum.
+
+A generator may be constructed from an enumeration by mapping the selector method
+over a sorted list of integer indices.  The GenCheck standard generators are created
+by applying the four standard strategies - exhaustive, boundary (extreme), uniform and random -
+over an enumeration of the type.  These sampling strategies abstract the test plan from
+the concrete construction of particular instances of the test values, leaving the details
+of the specified type being tested to the enumeration methods.  
 
 Enumerations for standard Haskell data types such as list and tuples are provided.
 For new data types, enumerations can be easily made using the enumeration combinators 
 |eConst, eNode, eSum, eProd, etc.| in the Generator.Enumeration module.
-These combinators simply mirror the structure of the type constructors,
-but produce the required enumerations.
+These combinators simply mirror the structure of the type constructors
+to produce the required enumerations, and can be constructed mechanically.
+
+A pure structure enumeration / generator constructs structures that are over a constant value
+(i.e. unit), so some method is required for substituting other values into the data nodes.
+One approach is to define the structure over a particular kind of element,
+and have the enumeration count all of those element types as distinct values of the structure.
+From a testing perspective, this creates an unfortunate imbalance in the number of values
+for any given size of structure vs. the relevance of the values in the structures' nodes.
+For example, when testing a heap sort insert, it would be nice to exhaustively test
+all \emph{shapes} of heaps up to a certain size, but not necessarily exhaustively test
+all possible integer node values in each of those heap shapes.  A better solution 
+is to create a structure generator and sample it using the appropriate strategies,
+and then populate each of those shapes with one or more sets of values, 
+also chosen from an appropriately sampling generator.  GenCheck supports this
+kind of substitution at the generator level; a generator of structures $Foo a$ is
+created by applying one of the substitution functions over a $Foo$ generator and an $a$ generator.
+A collection of substitution functions is available in the Generator.Substitution module,
+and provides the ability to populate each structure with one or more sets of elements,
+using different strategies such as all permutations, all combinations, or just unique elements.
+Substitution allows a great deal of control over the generation of complex data structures
+by decoupling the sampling strategy of the structures, the elements, and their substitution;
+this is one of the most important benefits of GenCheck over QuickCheck and SmallCheck.
 
 \subsubsection{List Zipper Enumeration and Generators}
 
@@ -134,13 +196,6 @@ Nearing completion, s/he would switch to the test programs
 that provide more control over the test suite generation,
 and report all of the test cases in the results to ensure good coverage.
 
-The objective of GenCheck is to provide a testing framework that
-scales in scope from a very simple QuickCheck like interface,
-through progressively more thorough test suites and reporting,
-during the course of the development towards production.
-The highly modular GenCheck API allows an arbitrarily deep level of control,
-with a commensurate level of complexity,
-supporting customization and new development as required.
 
 \subsubsection{Testing the List Zipper Module}
 \input {list_zipper/TestListZipper.lhs}
@@ -149,87 +204,68 @@ supporting customization and new development as required.
 
 
 %\section{Tutorial 3: Customizing the Test Programs}
+%%
+% Putting this on hold so Jacques can change the class definitions
 %
-%??? Everything below this is currently junk, keeping it for review / reuse
+%The objective of GenCheck is to provide a testing framework that
+%scales in scope from a very simple QuickCheck like interface,
+%through progressively more thorough test suites and reporting,
+%during the course of the development towards production.
+%The highly modular GenCheck API allows an arbitrarily deep level of control,
+%with a commensurate level of complexity,
+%supporting customization and new development as required.
 %
-%Test suite and Generators
+%\subsection{Generalizing test data: Datum , Verdict, and LabelledPartition Classes}
 %
-%The System.SimpleCheck module test suites are test cases stored in 
-%a Haskell Map (as in Data.Map) indexed by rank, called a MapRankSuite.
-%Storing test results this way may or may not be meaningful in 
-%any given situation, but it is the only information guaranteed to be available.
+%\begin{itemize}
+%\item decouples test data, test result, meta data and storage of test suite / results
+%\item define a structure for carrying data value as instance of Datum
+%\item define a structure for carrying individual result as instance of Verdict
+%\item define a structure for holding the collection of data and results as
+%an instance of LabelledPartition
+%\item arbitrary meta data about the test case or the evaluation of the result
+%can then be carried through the GenCheck system
+%\end{itemize}
+%
+%\subsubsection{Labelled Partitions}
+%The test suites are test cases in the earlier tutorials are stored in
+%a Haskell Map (as in Data.Map) indexed (or ``labelled'') by rank (called a MapRankSuite).
+%This indexing mirrors the way the test cases are generated, namely by structure size,
+%and is useful in unit testing structure manipulation functions such as reverse and fold,
+%where the size of the structure is highly relevant, and is the only information 
+%guaranteed to be available in general.
+%
+%Storing test results this way may or may not be meaningful in other situations,
+%in particular where the values of an element play a key role in defining the outcome
+%of the functions being tested.  In these cases, the tester will want to modify
+%the partitioning to group (and label) test cases by some other useful value.
 %The GenCheck framework allows test suite containers to be customized using
-%a class called LabelledPartition that abstracts the interface required by the test programs,
-%but all of the discussion in this tutorial assumes the use of MapRankSuites.
+%a class called LabelledPartition that abstracts the interface required by the test programs.
+%For example, a test over $Char$ might be grouped by the labels $ASCII$,
+%$CONTROL$ and $Extended$ to help focus on unusual characters in a printing scheme.
+%Multiple levels of partitioning can also be used, by embedding labelled partitions
+%inside of labelled partitions, to allow a more granular level of test case analysis.
 %
-%need to identify the domain of each property
-%start with the input type, and then consider any restrictions over the values of that type
-%a test suite is a partitioned collection of test cases
-%  the partions are labelled to improve scheduling and reporting
-%  could use a single partition, or multi-level labelled partitions
+%The abstract structure of a labelled partition can also be leveraged to
+%optimize the evaluation of tests by the test scheduling and evaluation.
+%Testing is an excellent target for parallel execution, and very large tests
+%might be carried out on multiple processors or even different systems.
+%The structure of the labelled partition can be modified to support decentralized 
+%test systems.
 %
-%test cases can be manually coded or automatically generated
-%manually coded test cases just written into the partitioned collection
+%\subsection{Generalizing Test Evaluation and Reporting}
 %
-%Input types are base types or structures composed with other types as ``elements''.
+%\begin{itemize}
+%\item tests can be pure or monadic computations
+%\item tests can be serialized or parallel
+%\item might want to stop after some number of failures,
+%or complete entire test suite
+%\item the same test suite can be used in different modes
+%\end{itemize}
 %
-%generators are functions from positive Int rank to (possibly empty) list of values
-%  intent is that rank is in inverse ``priority'' of test cases i.e. 1 is highest.
-%  there is generally no guarantee of uniqueness / completeness
-%  either use the generators provided, use purely custom generators,
-%     or use generator combinators provided
+%\subsection{The SimpleCheck System}
+%The System.SimpleCheck module contains a simple set of test programs,
+%each composed of a test suite building strategy and data structure, 
+%an execution strategy, and a reporting strategy.  
 %
-%  base type generators only have values for rank 1, other ranks are empty lists
-%  some generators are provided in:
-%    Test.GenCheck.Generator.BaseGen:
-%       Int,Char,String,Ratio,Double,Float
-%       baseGen - creates a base type generator from a list
-%
-%  polymorphic structures are generated in two stages:
-%    first generate the structures using a constant type as the element
-%        (e.g. (), or |data Label = A \vbar B \vbar C ...| for multi-sort structures)
-%    use composition with a base type generator to fill in the elements
-%      Test.GenCheck.Generator.Composition has composition functions
-%    some polymorphic structure generators in Test.GenCheck.Generator.StructureGen:
-%        lists ([]), pairs (,)
-%
-%enumerative generators provide a useful approach to generators
-%an enumeration of a type is an ordering of the type values with (rank,index)
-%   guarantees uniqueness and totality
-%the Enumeration is a : count of the number of elements at each rank
-%                       select function from rank,index to a value
-%
-%flat (rank 1) enumerations - Test.GenCheck.Generator.BaseTypeEnum module
-%Haskell (Bounded, Enum) instances are rank 1 only enumerations, 
-% includes Int, Char, any finite list of values
-% enumBaseAll is a template for this, copy and hard code the specific type
-%    (wanted to optimize Int generation, so didn't create general instance of Enum,Bounded)
-% enumBaseRng to enumerate a range of values, don't need Bounded instance
-% enumList enumerates finite list of values (all rank 1)
-%
-%ranked enumerations -   Test.GenCheck.Generator.Enumeration
-%Haskell polymorphic types which are regular polynomial structures 
-%  have enumerations where the rank is the number of elements (size)
-%  use combinatorial theory to index regular polynomial Haskell structures
-%
-%structure generators composed from combinators that mirror constructor
-%eConst c, eNode x, eSum e1 e2, eProd t e1 e2 (and eSum3,eProd3,etc.)
-%
-%       
-%
-%
-%
-%
-%Enumerations are total orderings over a type.
-%
-%Base Type Enumerations
-%are flat so all values have rank 1
-%any instance of the Enum class in Haskell is enumerable, assuming it is also bounded
-%Integer is not bounded, so is not enumerable in this way.
-%
-%Structure Enumerations
-%rank is the number of elements in the structure
-%value of a structure is intended to be the structure holes for each element;
-%can't do ``holes'' in Haskell so generally use either |()| or a sort label identifying the element type,
-%e.g. data Label = A | B | C etc.
 %
