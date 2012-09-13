@@ -47,6 +47,7 @@ library
   exposed-modules:
     Test.SimpleCheck
     Test.GenCheck
+    Test.GenCheck.PureTest
     Test.GenCheck.System.Result
     Test.GenCheck.Generator.Generator
     Test.GenCheck.Generator.Substitution

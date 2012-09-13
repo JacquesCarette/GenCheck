@@ -24,14 +24,23 @@ module Test.GenCheck (
 , subst2, subst2N
 , subst2StdGen --, subst2StdGenN, subst2StdGenAll, subst2StdGenPerm, subst2StdGenComb
 , Structure3(..)
-
+, dspVerdict
+, dspSummary
+, dspDetails
+, DetailedResult(..)
+, result
+, resultPartial
 ) where
 
 import Test.GenCheck.Base.Base (Rank, Count, Property)
-import Test.GenCheck.System.TestSuite (MapRankSuite, TestSuite, suiteMerge, 
-       GenInstruct, genSuite, testSuite, stdSuite, deepSuite, baseSuite)
 import Test.GenCheck.PureTest (gcPureTest, gcPureTestable, 
             gcPureTestDeep, gcPureTestBase, GCResults, GCTestPt)
+
+import Test.GenCheck.System.TestSuite (MapRankSuite, TestSuite, suiteMerge, 
+       GenInstruct, genSuite, testSuite, stdSuite, deepSuite, baseSuite)
+import Test.GenCheck.System.Result (dspVerdict, dspSummary, dspDetails, 
+             DetailedResult(..), result, resultPartial)
+
 import Test.GenCheck.Generator.Generator (Generator, Testable(..), 
             StandardGens(..),stdEnumGens)
 import Test.GenCheck.Generator.StructureGens(listStdGens) -- instances of Testable
