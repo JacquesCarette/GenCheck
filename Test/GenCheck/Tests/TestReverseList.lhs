@@ -10,7 +10,7 @@ import Test.GenCheck.Generator.StructureGens (genListOf)
 import Test.GenCheck.Generator.BaseGens(genBaseRangeAll, genIntRnd)
 import Test.GenCheck.System.TestSuite (GenInstruct, deepSuite, genSuite)
 
-import Test.SimpleCheck (simpleTest)
+import Test.SimpleCheck (baseTest, deepTest)
 
 \end{code}
 
@@ -39,27 +39,6 @@ revList xs  = rev xs []
 
 \end{code}
 
-SimpleCheck will generate a collection of lists and evalute the property over them.
-One or more generators must be provided to create the test cases.
-Although the function and properties are polymorphic in the element type,
-the actual test cases must be built with a concrete type.
-Here we will use the exhaustive base type generator (genBaseRngAll)
-taken from the Generator.BaseGens module to create unique lists of integers.
-We also use the random integer generator (genIntRnd) to test the singleton list property;
-note that this requires an Integer seed.
-
-The genListOf combinator creates a generator for lists of Ints, 
-where the length of the list is the generator rank
-(all Int values are at rank 1).
-
-\begin{code}
-
-gRndInts s = genIntRnd s
-gUniqueInts = genBaseRangeAll (1,100)
-gIntLists = genListOf gUniqueInts 1
-
-\end{code}
-
 The test suite will be built from the generator given a set of generator instructions.
 The instructions determine how many elements of each rank are generated for the test.
 A collection of test generation strategies are included in the System.TestSuite module.
@@ -71,13 +50,9 @@ is supplied here in this function, so the random values will always be identical
 from test to test.  genSuite builds the test suite from a single generator
 
 \begin{code}
-testRevRev1 =
-  let ts = genSuite gIntLists [(r,1) | r <- [1..30]] 
-  in  simpleTest "Test rev (rev x) == x with integer lists up to size 30" propRevRevEq ts
 
-testRevUnit1 = 
-  let ts = genSuite (gRndInts (mkStdGen 54698735)) [(1, 100)]
-  in simpleTest "Test that rev[x] = [x] for any x with random integers" propRevUnitEq ts
+testRevUnit1 n = baseTest (propRevUnitEq :: Property Char) n
+testRevRev1  n = deepTest (propRevRevEq :: Property [Int]) n
 
 \end{code}
 
@@ -86,9 +61,6 @@ We also want to see a case fail, so lets try comparing reversing a list with the
 propRevFail :: (Eq a) => Property [a]
 propRevFail xs =  revList xs == xs
 
-testRevFail1 = 
-  let lbl = "Testing reverse list = list, should fail to rank 5 with unique elements"
-      ts =  genSuite gIntLists [(r,2) | r<-[1..5]]
-  in simpleTest lbl propRevFail ts
+testRevFail1 n =  deepTest (propRevFail :: Property [Int]) n -- should fail for n > 2
 \end{code}
 

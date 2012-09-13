@@ -67,6 +67,9 @@ module Test.SimpleCheck (
 , simpleCheck
 -- * General interface for a pure (non-monadic) computation returning a result
 , simplePure
+-- * Data structures for collection of test results and individual test case / result
+, SimpleResults
+, SimpleTestPt
 ) where
 
 import System.Random (newStdGen)

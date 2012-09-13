@@ -42,7 +42,7 @@ dspVerdict lbl res =
   let fs = failures res
       n  = Partition.size res
       nf = Partition.size fs
-  in do putStrLn lbl
+  in do if (0 < length lbl) then putStrLn lbl else putStr ""
         if (nf == 0) then putStrLn ("PASSED " ++ show n ++ " cases.")
                      else putStrLn ("FAILED: " ++ show nf ++ " failed cases.")
         return $ result res
@@ -53,7 +53,7 @@ dspSummary lbl res =
   let fs = failures res
       n  = Partition.size res
       nf = Partition.size fs
-  in do putStrLn lbl
+  in do if (0 < length lbl) then putStrLn lbl else putStr ""
         if (nf == 0) then putStrLn ("PASSED over " ++ show n ++ " cases.")
              else do putStrLn ("FAILED " ++ show nf ++ " Cases (of " ++ show n ++ "): " )
                      dspTestCases $ (cases fs)
@@ -64,7 +64,7 @@ dspDetails lbl res =
   let fs = failures res
       n  = Partition.size res
       nf = Partition.size fs
-  in do putStrLn lbl
+  in do if (0 < length lbl) then putStrLn lbl else putStr ""
         if (nf == 0) then putStrLn ("PASSED " ++ show n ++ " cases:")
              else do putStrLn ("FAILED: " ++ show nf ++ " cases (of " ++ show n ++ "): " )
         dspTestCases res        
