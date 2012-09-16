@@ -9,7 +9,7 @@ that is just a convention so the GenCheck instances module is easily found.
 module ListZipper_GC where
 
 import Control.Monad (liftM2)
-
+`
 import Test.GenCheck
 import Test.GenCheck.Generator.Enumeration
 

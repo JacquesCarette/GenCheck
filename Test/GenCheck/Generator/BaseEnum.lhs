@@ -35,6 +35,8 @@ import Data.Char
 import Data.List (genericLength)
 
 import Test.GenCheck.Base.Base(Count)
+import Test.GenCheck.Generator.Enumeration(Label)
+
 \end{code}
 
 Base types are unranked.  Base type enumerations are not memoized
@@ -49,11 +51,12 @@ makeBaseEnum :: Count -> BaseSelector a -> BaseEnum a
 makeBaseEnum cnt sel = Base cnt sel
 
 getBase :: BaseEnum a -> Count -> Maybe a
-getBase (Base c s) n | (n > 0)   = if c >= n then Just (s n) else Nothing
+getBase (Base c s) n | (n > 0)   = if c >= n then Just (s (n-1)) else Nothing
 getBase _  _         | otherwise = Nothing
 
 getBaseUnsafe :: BaseEnum a -> Count -> a
-getBaseUnsafe  (Base _ s) n = s n
+getBaseUnsafe  (Base _ s) n = s (n-1)
+
 \end{code}
 
 Any list is a base enumeration, with the index provided by list position.
@@ -103,6 +106,9 @@ provided.
 \begin{code}
 class EnumGC a where
   base     :: BaseEnum a
+
+instance EnumGC Label where
+  base = let lbls = ([minBound..maxBound]:: [Label]) in enumList lbls
 
 instance EnumGC Int where
   base = let c = (toInteger (maxBound::Int)) - (toInteger (minBound::Int)) + (1 :: Integer)

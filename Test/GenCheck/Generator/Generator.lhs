@@ -50,6 +50,7 @@ import Data.List (genericTake)
 import Test.GenCheck.Base.Base (Rank, Count)
 import Test.GenCheck.Generator.Enumeration as 
             Enum(Enumeration, Enumerated(..), counter, getUnsafe,Label)
+import Test.GenCheck.Generator.BaseEnum as Base()
 import Test.GenCheck.Generator.EnumStrat
 \end{code}
 

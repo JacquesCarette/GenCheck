@@ -136,8 +136,8 @@ substStdGenN n (StdGens g1 g2 g3 g4 False) g =
       gx = substN n g2 g
       gu k = substN n (g3 k) g
       gr s = substN n (g4 s) g
-  in StdGens ga gx gu gr False
-substStdGenN _ _ _ = error "Can only substituted into ranked"
+  in StdGens ga gx gu gr True
+substStdGenN _ _ _ = error "Can only substitute into ranked"
 
 substStdGenAll :: Structure c => StandardGens (c a) -> Generator b -> StandardGens (c b)
 substStdGenAll (StdGens g1 g2 g3 g4 False) g = 
@@ -145,7 +145,7 @@ substStdGenAll (StdGens g1 g2 g3 g4 False) g =
       gx = substAll g2 g
       gu k = substAll (g3 k) g
       gr s = substAll (g4 s) g
-  in StdGens ga gx gu gr False
+  in StdGens ga gx gu gr True
 substStdGenAll _ _ = error "Can only substitute into ranked"
 \end{code}
 
@@ -172,15 +172,19 @@ gsub2 (fx:fxs) ys zs =
 
 subst2N :: Structure2 c => Int -> Generator (c a b) -> Generator a' 
     -> Generator b' -> Generator (c a' b')
-subst2N n gfx gy gz r = gsub2N n 1 (gfx r) (gy 1) (gz 1)
+subst2N n gfx gy gz r = gsub2N n 1 1 (gfx r) (gy 1) (gz 1)
 
-gsub2N :: Structure2 c => Int -> Int -> [c a b] -> [a'] -> [b'] -> [c a' b']
-gsub2N _ 0 _  _ _      = []
-gsub2N _ _ [] _ _      = []
-gsub2N n k fxs@(fx:fxss) ys zs = 
+gsub2N :: Structure2 c => Int -> Int -> Int -> [c a b] -> [a'] -> [b'] -> [c a' b']
+gsub2N _ 0 _ _  _ _      = []
+gsub2N _ _ _ [] _ _      = []
+gsub2N _ _ 0 _  _ _      = []
+gsub2N _ _ _ _ [] _      = []
+gsub2N n k1 k2 fxs@(fx:fxss) ys zs = 
    let (mfy, ys', zs') = substitute2 fx ys zs
-   in if n > k then maybe [] (\fy -> fy : (gsub2N n (k+1) fxs ys' zs')) mfy
-               else maybe [] (\fy -> fy : (gsub2N n 1 fxss ys' zs')) mfy 
+   in if n > k2 
+      then maybe [] (\fy -> fy : (gsub2N n k1 (k2+1) fxs ys zs')) mfy
+      else if n > k1 then maybe [] (\fy -> fy : (gsub2N n (k1+1) 1 fxs ys' zs')) mfy
+                     else maybe [] (\fy -> fy : (gsub2N n 1 1 fxss ys' zs')) mfy
 
 subst2StdGen :: Structure2 c => StandardGens (c a b) -> Generator a' -> Generator b'
                                   -> StandardGens (c a' b')
@@ -189,6 +193,6 @@ subst2StdGen (StdGens g1 g2 g3 g4 False) ga' gb' =
       gx = subst2 g2 ga' gb'
       gu k = subst2 (g3 k) ga' gb'
       gr s = subst2 (g4 s) ga' gb'
-  in StdGens ga gx gu gr False
+  in StdGens ga gx gu gr True
 subst2StdGen _ _ _ = error "Can only substitute into ranked"
 \end{code}

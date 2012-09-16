@@ -121,7 +121,8 @@ type Counter      = Rank -> Count
 type Selector c a = Rank -> Count -> c a
 
 data Enumeration c a = Enum Counter (Selector c a)
-data Label = A | B | C | D | E | F | G deriving Show
+data Label = A | B | C | D | E | F | G 
+  deriving (Show, Eq, Enum, Bounded)
 
 instance Functor c => Functor (Enumeration c) where
     fmap f (Enum c s) = Enum c (\rank count -> fmap f (s rank count))
@@ -148,12 +149,12 @@ enumRange (l,u) e = mkEnum c' s'
         s' r k' = s r (k' + l - 1)
 
 get :: Enumeration c a -> Rank -> Count -> Maybe (c a)
-get (Enum c s) r n | (r > 0) && (n > 0) =  
-    if (c r) >= n then Just (s r n) else Nothing
+get (Enum c s) r n | (r > 0) && (n > 0) =
+    if (c r) >= n then Just (s r (n-1)) else Nothing
 get _ _ _ | otherwise = Nothing
 
 getUnsafe :: Enumeration c a -> Rank -> Count -> c a
-getUnsafe  (Enum _ s) r n = s r n
+getUnsafe  (Enum _ s) r n = s r (n-1)
 \end{code}
 
 Enumerations are much more efficient when memoized. The counting and selector

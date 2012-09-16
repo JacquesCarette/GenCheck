@@ -75,9 +75,8 @@ Pairs are always of rank 2.
 
 \begin{code}
 instance Structure2 (,) where
-  substitute2 _ [] ys = (Nothing, [], ys)
-  substitute2 _ xs [] = (Nothing, xs, [])
   substitute2 _ (x:xs) (y:ys) = (Just (x,y), xs, ys)
+  substitute2 _ xs ys = (Nothing, xs, ys)
   
 genTplAll :: Generator (Label, Label)
 genTplAll r | r == 2    = [(A,B)]
