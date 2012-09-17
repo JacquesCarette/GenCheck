@@ -30,6 +30,7 @@ module Test.GenCheck.Generator.Substitution
 -- , subComb
 , substStdGenN
 , substStdGenAll
+, substStdGenStd
 -- , subStdGenPerm
 -- , subStdGenComb
 , Structure2(..)
@@ -44,6 +45,8 @@ module Test.GenCheck.Generator.Substitution
 ) where
 
 import Data.Maybe (catMaybes)
+import System.Random (split)
+
 import Test.GenCheck.Generator.Generator (Generator, StandardGens(..))
 \end{code}
 
@@ -131,7 +134,7 @@ the record.
 
 \begin{code}
 substStdGenN :: Structure c => Int -> StandardGens (c a) -> Generator b -> StandardGens (c b)
-substStdGenN n (StdGens g1 g2 g3 g4 False) g = 
+substStdGenN n (StdGens g1 g2 g3 g4 True) g = 
   let ga = substN n g1 g
       gx = substN n g2 g
       gu k = substN n (g3 k) g
@@ -140,13 +143,24 @@ substStdGenN n (StdGens g1 g2 g3 g4 False) g =
 substStdGenN _ _ _ = error "Can only substitute into ranked"
 
 substStdGenAll :: Structure c => StandardGens (c a) -> Generator b -> StandardGens (c b)
-substStdGenAll (StdGens g1 g2 g3 g4 False) g = 
+substStdGenAll (StdGens g1 g2 g3 g4 True) g = 
   let ga = substAll g1 g
       gx = substAll g2 g
       gu k = substAll (g3 k) g
       gr s = substAll (g4 s) g
   in StdGens ga gx gu gr True
 substStdGenAll _ _ = error "Can only substitute into ranked"
+
+substStdGenStd :: Structure c => 
+                  StandardGens (c a) -> StandardGens b -> StandardGens (c b)
+substStdGenStd (StdGens ga1 gx1 gu1 gr1 True) (StdGens ga2 gx2 gu2 gr2 _) =
+  let ga = substAll ga1 ga2
+      gx = substAll gx1 gx2
+      gu k = substAll (gu1 k) (gu2 k)
+      gr s = let (s1,s2) = split s in substAll (gr1 s1) (gr2 s2)
+  in StdGens ga gx gu gr True
+substStdGenStd _ _ = error "Can only substitute into ranked"
+
 \end{code}
 
 Multi-sort structure substitution. This could be accomplished with multiple
@@ -188,7 +202,7 @@ gsub2N n k1 k2 fxs@(fx:fxss) ys zs =
 
 subst2StdGen :: Structure2 c => StandardGens (c a b) -> Generator a' -> Generator b'
                                   -> StandardGens (c a' b')
-subst2StdGen (StdGens g1 g2 g3 g4 False) ga' gb' = 
+subst2StdGen (StdGens g1 g2 g3 g4 True) ga' gb' = 
   let ga = subst2 g1 ga' gb'
       gx = subst2 g2 ga' gb'
       gu k = subst2 (g3 k) ga' gb'

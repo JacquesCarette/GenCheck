@@ -15,6 +15,8 @@ module Test.GenCheck.Generator.BaseEnum
  ( makeBaseEnum
  , BaseEnum(..)
  , EnumGC(..)
+ , baseCounter
+ , baseSelector
  , getBase
  , getBaseUnsafe
  , enumList
@@ -29,13 +31,18 @@ module Test.GenCheck.Generator.BaseEnum
  , enumLowChar
  , enumUpperChar
  , enumDigitChar
+ -- , beMemoize
+ -- , beProd
+-- , bsProd
  ) where
 
 import Data.Char
 import Data.List (genericLength)
+import Data.Function.Memoize(memoize)
 
 import Test.GenCheck.Base.Base(Count)
-import Test.GenCheck.Generator.Enumeration(Label)
+import Test.GenCheck.Generator.Enumeration (Label, Enumeration, 
+               mkEnumeration, Selector)
 
 \end{code}
 
@@ -49,6 +56,11 @@ data BaseEnum a = Base {baseCount::Count, baseSelect :: BaseSelector a }
 
 makeBaseEnum :: Count -> BaseSelector a -> BaseEnum a
 makeBaseEnum cnt sel = Base cnt sel
+
+baseCounter  :: BaseEnum a -> Count
+baseCounter = baseCount
+baseSelector :: BaseEnum a -> BaseSelector a
+baseSelector = baseSelect
 
 getBase :: BaseEnum a -> Count -> Maybe a
 getBase (Base c s) n | (n > 0)   = if c >= n then Just (s (n-1)) else Nothing
@@ -119,3 +131,25 @@ instance EnumGC Char where
                  - ((toInteger.fromEnum) (minBound::Char)) + (1 :: Integer)
          in Base c (toEnum.fromInteger)
 \end{code}
+
+Very large base enumerations may be more efficient when memoized. 
+Only the selector is memoized as the counter is not a function.
+It is appropriate to memoize the resulting enumeration using eMemoize, 
+which  selects the current default memoization technique.
+Other memoize techniques can be located in the Base.Memoize module.
+
+--\begin{code}
+beMemoize :: BaseEnum a -> BaseEnum a
+beMemoize (Base c s) =  makeBaseEnum c (memoize s)
+
+beProd :: ( -> b -> c Label) -> BaseEnum a -> BaseEnum b -> Enumeration c Label
+beProd con e1@(Base c1 _) e2@(Base c2 _) = mkEnumeration c' s'
+  where c' r   = if r == 1 then (c1 * c2) else 0
+        s' r n = bsProd con e1 e2 r n
+bsProd :: (a -> b -> c Label) -> BaseEnum a -> BaseEnum b -> Selector c Label
+bsProd con (Base _ s1) (Base c2 s2) r n | r == 1 = 
+   let (i1,i2) = n `divMod` c2
+   in con (s1 i1) (s2 i2)
+bsProd _ _ _ _ _ | otherwise = undefined
+
+--\end{code}

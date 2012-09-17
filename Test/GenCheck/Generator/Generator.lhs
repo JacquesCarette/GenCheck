@@ -123,7 +123,7 @@ data StandardGens a = StdGens
   }
 
 enumGens :: Enumeration c Label -> StandardGens (c Label) 
-enumGens e = StdGens allGen xtrmGen uniGen randGen False
+enumGens e = StdGens allGen xtrmGen uniGen randGen True
   where
     allGen   = enumGenerator exhaustG e
     xtrmGen  = enumGenerator extreme e
