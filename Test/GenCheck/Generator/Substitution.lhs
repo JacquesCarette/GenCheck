@@ -105,8 +105,9 @@ substN :: Structure c => Int -> Generator (c a) -> Generator b -> Generator (c b
 substN n gfx gy r = gsubN n n (gfx r) (gy 1)
 
 gsubN :: Structure c => Int -> Int -> [c a] -> [b] -> [c b]
-gsubN _ 0 _  _       = []
-gsubN _ _ [] _       = []
+gsubN n _ _  _ | n < 1 = []
+gsubN _ 0 _  _         = []
+gsubN _ _ [] _         = []
 gsubN n k fxs@(fx:fxss) ys = 
    let (mfy, ys') = substitute fx ys
    in if k > 1 then maybe [] (\fy -> fy : (gsubN n (k-1) fxs ys')) mfy
@@ -189,10 +190,11 @@ subst2N :: Structure2 c => Int -> Generator (c a b) -> Generator a'
 subst2N n gfx gy gz r = gsub2N n 1 1 (gfx r) (gy 1) (gz 1)
 
 gsub2N :: Structure2 c => Int -> Int -> Int -> [c a b] -> [a'] -> [b'] -> [c a' b']
-gsub2N _ 0 _ _  _ _      = []
-gsub2N _ _ _ [] _ _      = []
-gsub2N _ _ 0 _  _ _      = []
-gsub2N _ _ _ _ [] _      = []
+gsub2N n _ _ _  _ _ | n < 1 = []
+gsub2N _ 0 _ _  _ _         = []
+gsub2N _ _ _ [] _ _         = []
+gsub2N _ _ 0 _  _ _         = []
+gsub2N _ _ _ _ [] _         = []
 gsub2N n k1 k2 fxs@(fx:fxss) ys zs = 
    let (mfy, ys', zs') = substitute2 fx ys zs
    in if n > k2 

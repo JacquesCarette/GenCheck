@@ -68,13 +68,7 @@ but may include functions that test the properties using GenCheck.
 
 \input {list_zipper/PropListZip.lhs}
 
-\subsection{Test Suites and Standard Generators}
-The module System.TestSuite contains functions that assemble test suites 
-from one or more test case generators. These suite builders take a collection of 
-``standard'' generators and a set of ``generator instructions'', a list of rank, count pairs.  
-The allocation of test cases to ranks through these instructions is called a ``test strategy'' 
-and can be used independently of the type of data being generated, 
-assuming that the standard generators are available for that type.
+\subsection{Generators and Enumerations}
 
 A GenCheck generator is any function from a rank (positive integer) to a list of values.
 Generators may be finite or infinite, may include duplicates of the same value,
@@ -82,6 +76,33 @@ and may be missing values from the total population of the type.  Generators
 can be manually coded or built from a GenCheck enumeration of the type using
 a sampling strategy called an ``enumerative strategy''.  These strategies can be
 applied to any data type that can be enumerated, i.e. ordered, and indexed by a finite rank.
+
+One way to build generators is to start with an enumeration of the type to be generated.
+An enumeration of the type is a total order over the type's values.  For base types,
+any list of values is a de facto (base) enumeration, as is any type that is an instance
+of Haskell's Enum and Bounded classes.  Regular recursive algebraic data types
+are enumerated by first partitioning the values by size (i.e. the number of elements)
+and then indexing each partition.  Base and structure type enumerations are
+distinguished in GenCheck as the structure enumerations use the rank, or size,
+as the first part of the index, but base type enumerations have no rank.
+A collection of common base type enumerations is supplied in the |Generator.BaseEnum|.
+|Generator.Enumeration| contains a collection of enumeration combinators
+that mirror the sum and product construction of the Haskell algebraic data types,
+allowing structure enumerations to be created mechanically.
+
+An enumerative strategy is a type independent approach to sampling
+the values of an enumeration to create a list of values for a generator.
+These strategies are implemented as lists of |Integer| indices;
+the selector function from the enumeration is mapped across the strategy,
+at a specified rank, to get the ordered values to be returned by the generator.
+For example, |EnumStrat.uniform| takes every $k^th$ value from an enumeration,
+so the strategy for | uniform 5 ->  [1, 6, 11, 16, ...] |, and if this were applied to 
+an enumeration of | Char | would produce:
+
+\begin{code}
+genUni5LowChar = enumGenerator (uniform 5) enumLowChar 
+-> ['a', 'f', 'k', ...]
+\end{code}
 
 The so called standard generators are just four different sampling strategies
 that can be applied to an enumeration of the generated type.  These are:
@@ -92,6 +113,19 @@ that can be applied to an enumeration of the generated type.  These are:
 \item[uniform]{Select the specified number elements at uniform intervals through the enumeration,}
 \item[random]{Use the random generator to pick an infinite list of values.}
 \end{description}
+
+\subsubsection{List Zipper Enumeration and Generators}
+
+\input {list_zipper/ListZipper_GC.lhs}
+	
+
+\subsection{Test Suites and Standard Generators}
+The module System.TestSuite contains functions that assemble test suites 
+from one or more test case generators. These suite builders take a collection of 
+``standard'' generators and a set of ``generator instructions'', a list of rank, count pairs.  
+The allocation of test cases to ranks through these instructions is called a ``test strategy'' 
+and can be used independently of the type of data being generated, 
+assuming that the standard generators are available for that type.
 
 The basis for the test suites used by SimpleCheck test programs
 are the standard generator set described above.
@@ -122,72 +156,6 @@ and a mix of uniformly and randomly selected values to the specified maximum ran
 The System.SimpleCheck module test suites are test cases stored in 
 a Haskell map (as in Data.Map) indexed by rank, called a MapRankSuite.
 
-\subsubsection{Enumerating New Data Types}
-A GenCheck enumeration is a way of ordering the values of a type,
-and is used as the basis for the standard test case generators in GenCheck.
-A generator can be any function that produces a list of values of the generated type.
-Since the values are in a list, the generator must order those elements,
-and the GenCheck enumerations are one way to provide a consistent index over the values.
-Note that generators do not have to provide all of the possible values of the type,
-nor is there a restriction against providing multiple instances of a value in any given list,
-so the position of an element in a generator's output is not generally the same as an enumeration.
-
-Haskell structure types can be recursively defined and therefore arbitrarily large,
-even infinitely large with lazy evaluation.  To allow any sort of ordering of these infinite sets,
-the values are first partitioned into finite subsets by the number of elements in the structure, 
-which is called the rank of the structure.  The common sized elements in the subset 
-are then ordered and indexed using a depth first, sum of products view of the values.
-This allows most (any regularly recursive polynomial) structure type to be enumerated
-using a two tiered (rank, integer index) pair.  Structure types that are enumerated are 
-instances of the Enumerated class, which provides methods to count and select (construct)
-values of the specified rank and index.
-
-A base type, such as Int or Char, do not have a rank and are enumerated if there is a
-single ordering over all of the elements of that type.  This is called a base enumeration (BaseEnum)
-and is effectively the same as the Haskell Enum class; the GenCheck class is called EnumGC 
-to highlight that it is an extension of Enum.
-
-A generator may be constructed from an enumeration by mapping the selector method
-over a sorted list of integer indices.  The GenCheck standard generators are created
-by applying the four standard strategies - exhaustive, boundary (extreme), uniform and random -
-over an enumeration of the type.  These sampling strategies abstract the test plan from
-the concrete construction of particular instances of the test values, leaving the details
-of the specified type being tested to the enumeration methods.  
-
-Enumerations for standard Haskell data types such as list and tuples are provided.
-For new data types, enumerations can be easily made using the enumeration combinators 
-|eConst, eNode, eSum, eProd, etc.| in the Generator.Enumeration module.
-These combinators simply mirror the structure of the type constructors
-to produce the required enumerations, and can be constructed mechanically.
-
-A pure structure enumeration / generator constructs structures that are over a constant value
-(i.e. unit), so some method is required for substituting other values into the data nodes.
-One approach is to define the structure over a particular kind of element,
-and have the enumeration count all of those element types as distinct values of the structure.
-From a testing perspective, this creates an unfortunate imbalance in the number of values
-for any given size of structure vs. the relevance of the values in the structures' nodes.
-For example, when testing a heap sort insert, it would be nice to exhaustively test
-all \emph{shapes} of heaps up to a certain size, but not necessarily exhaustively test
-all possible integer node values in each of those heap shapes.  A better solution 
-is to create a structure generator and sample it using the appropriate strategies,
-and then populate each of those shapes with one or more sets of values, 
-also chosen from an appropriately sampling generator.  GenCheck supports this
-kind of substitution at the generator level; a generator of structures $Foo a$ is
-created by applying one of the substitution functions over a $Foo$ generator and an $a$ generator.
-A collection of substitution functions is available in the Generator.Substitution module,
-and provides the ability to populate each structure with one or more sets of elements,
-using different strategies such as all permutations, all combinations, or just unique elements.
-Substitution allows a great deal of control over the generation of complex data structures
-by decoupling the sampling strategy of the structures, the elements, and their substitution;
-this is one of the most important benefits of GenCheck over QuickCheck and SmallCheck.
-
-\subsubsection{List Zipper Enumeration and Generators}
-
-\input {list_zipper/ListZipper_GC.lhs}
-
-Generators are created from enumerations and enumerative strategies
-using Generator.enumGenerator for structure types and BaseGen.baseEnumGen for base types.
-The standard generator set, and therefore the Testable instance, is built using stdEnumGens.
 
 \subsection{The Testing Process}
 Typically a GenCheck user would start with the default test suites
@@ -200,8 +168,130 @@ and report all of the test cases in the results to ensure good coverage.
 \subsubsection{Testing the List Zipper Module}
 \input {list_zipper/TestListZipper.lhs}
 
+\subsection{Generating Simple Structures with Significant Elements}
 
+Generating test cases is generally decomposed into two phases: 
+generating structures, and then populating them with base type elements.
+For some properties, such as the ListZipper example above,
+the structure of the type is the most significant aspect of the values.
+However, in other situations, the values of the elements in the structure
+are very important to the properties being tested.
+Of course, some properties just require a single base type, 
+but if there are even two base type inputs to the property
+the test cases are at least a product of the two.
+GenCheck provides a rich API to control the generation of both 
+the structural and content aspects of the test cases.
 
+The pair tuple is an example of a type where the content is more important
+than the structure.  There is only one ``shape'' of a pair, namely $(A, B)$,
+so the structure generator consists of a single value at rank 2 and
+A and B are labels that represent the sorts of the elements of the pair.
+The pair is the simplest instance of the Structure2 class, 
+which identifies the substitution2 method for populating pairs from two generators,
+one of each type of elements for the pair.  The implementation of the tuple
+in | Generator.StructureGens | is shown below:
+
+\begin{code}
+instance Structure2 (,) where
+  substitute2 _ (x:xs) (y:ys) = (Just (x,y), xs, ys)
+  substitute2 _ xs ys = (Nothing, xs, ys)
+  
+genTpl :: Generator (Label, Label)
+genTpl r | r == 2    = [(A,B)]
+genTpl _ | otherwise = []
+
+genABTpl = subst2N
+\end{code}
+
+The tuple template is populated by substituting values for the Labels
+using the substitution combinators from the | Generator.Substitution | module.
+These combinators provide several different strategies to combine the two sorts of elements. 
+An example the two is given here, where :
+
+\begin{description}
+\item[genABTpl\_20x20] { is a generator of up to 400 elements taken as 
+the Cartesian product of the first 20 elements of each generator, or as many exist,}
+\item[genABTpl\_All] {assuming genB at least is finite, provides all of the pairs in 
+A dominant order}
+\end{description}
+
+\begin{code}
+genABTpl_20x20 = subst2N 20 genA genB
+
+genABTpl_All = subst2All genA genB
+\end{code}
+
+The choice and result of the substitution strategies are clearly impacted by
+the nature of the element generators, specifically whether they are finite
+and the order they impose upon their values.  
+
+Note that the elements substituted are drawn from rank 1 of the generator.
+This could be because they are base types or through a generator combinator
+that flattens the ranks of the values arbitrarily to 1; either way they are treated
+as ``flat'' or rank-less values.  If the rank of the elements was relevant,
+composition combinators from the |Generator.Composition| module should be used
+instead of substitution.  In principle, composed structures may still receive substituted elements
+but substituted structures are complete.
+
+\subsubsection {Decimal Example}
+
+\input{decimal/Decimal_GC.lhs}
+
+%\subsubsection{Enumerations in Detail}
+%
+%Haskell structure types can be recursively defined and therefore arbitrarily large,
+%even infinitely large with lazy evaluation.  To allow any sort of ordering of these infinite sets,
+%the values are first partitioned into finite subsets by the number of elements in the structure, 
+%which is called the rank of the structure.  The common sized elements in the subset 
+%are then ordered and indexed using a depth first, sum of products view of the values.
+%This allows most (any regularly recursive polynomial) structure type to be enumerated
+%using a two tiered (rank, integer index) pair.  Structure types that are enumerated are 
+%instances of the Enumerated class, which provides methods to count and select (construct)
+%values of the specified rank and index.
+%
+%A base type, such as Int or Char, do not have a rank and are enumerated if there is a
+%single ordering over all of the elements of that type.  This is called a base enumeration (BaseEnum)
+%and is effectively the same as the Haskell Enum class; the GenCheck class is called EnumGC 
+%to highlight that it is an extension of Enum.
+%
+%A generator may be constructed from an enumeration by mapping the selector method
+%over a sorted list of integer indices.  The GenCheck standard generators are created
+%by applying the four standard strategies - exhaustive, boundary (extreme), uniform and random -
+%over an enumeration of the type.  These sampling strategies abstract the test plan from
+%the concrete construction of particular instances of the test values, leaving the details
+%of the specified type being tested to the enumeration methods.  
+%
+%Enumerations for standard Haskell data types such as list and tuples are provided.
+%For new data types, enumerations can be easily made using the enumeration combinators 
+%|eConst, eNode, eSum, eProd, etc.| in the Generator.Enumeration module.
+%These combinators simply mirror the structure of the type constructors
+%to produce the required enumerations, and can be constructed mechanically.
+%
+%A pure structure enumeration / generator constructs structures that are over a constant value
+%(i.e. unit), so some method is required for substituting other values into the data nodes.
+%One approach is to define the structure over a particular kind of element,
+%and have the enumeration count all of those element types as distinct values of the structure.
+%From a testing perspective, this creates an unfortunate imbalance in the number of values
+%for any given size of structure vs. the relevance of the values in the structures' nodes.
+%For example, when testing a heap sort insert, it would be nice to exhaustively test
+%all \emph{shapes} of heaps up to a certain size, but not necessarily exhaustively test
+%all possible integer node values in each of those heap shapes.  A better solution 
+%is to create a structure generator and sample it using the appropriate strategies,
+%and then populate each of those shapes with one or more sets of values, 
+%also chosen from an appropriately sampling generator.  GenCheck supports this
+%kind of substitution at the generator level; a generator of structures $Foo a$ is
+%created by applying one of the substitution functions over a $Foo$ generator and an $a$ generator.
+%A collection of substitution functions is available in the Generator.Substitution module,
+%and provides the ability to populate each structure with one or more sets of elements,
+%using different strategies such as all permutations, all combinations, or just unique elements.
+%Substitution allows a great deal of control over the generation of complex data structures
+%by decoupling the sampling strategy of the structures, the elements, and their substitution;
+%this is one of the most important benefits of GenCheck over QuickCheck and SmallCheck.
+%
+%Generators are created from enumerations and enumerative strategies
+%using Generator.enumGenerator for structure types and BaseGen.baseEnumGen for base types.
+%The standard generator set, and therefore the Testable instance, is built using stdEnumGens.
+%
 
 %\section{Tutorial 3: Customizing the Test Programs}
 %%

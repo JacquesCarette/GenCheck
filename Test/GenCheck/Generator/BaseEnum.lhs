@@ -25,6 +25,7 @@ module Test.GenCheck.Generator.BaseEnum
  , enumBaseNat
  , enumBasePosInt
  , enumDfltInt
+ , enumInteger
  , enumBaseChar
  , enumBaseBool
  , enumDfltChar
@@ -38,11 +39,9 @@ module Test.GenCheck.Generator.BaseEnum
 
 import Data.Char
 import Data.List (genericLength)
-import Data.Function.Memoize(memoize)
 
 import Test.GenCheck.Base.Base(Count)
-import Test.GenCheck.Generator.Enumeration (Label, Enumeration, 
-               mkEnumeration, Selector)
+import Test.GenCheck.Generator.Enumeration (Label)
 
 \end{code}
 
@@ -90,12 +89,19 @@ enumBaseRange (l,u) =
 If the type is also Bounded, then the enumeration can be over the entire set of
 values.
 
+An Integer enumeration can be built using an arbitrary range;
+this is similar to enumBaseRange but without the typecasting.
+
 \begin{code}
 enumBaseInt, enumBaseNat, enumBasePosInt, enumDfltInt :: BaseEnum Int
 enumBaseInt    = enumBaseRange (minBound::Int, maxBound::Int)
 enumBaseNat    = enumBaseRange (0::Int, maxBound::Int)
 enumBasePosInt = enumBaseRange (1::Int, maxBound::Int)
 enumDfltInt    = enumBaseRange (-100::Int, 100::Int)
+
+enumInteger :: (Integer,Integer) -> BaseEnum Integer
+enumInteger (l,u) = makeBaseEnum (u - l + (1::Integer)) s
+  where s x = x + l - (1::Integer)
 
 enumBaseBool :: BaseEnum Bool
 enumBaseBool = makeBaseEnum 2 (\k -> k==1)
@@ -115,6 +121,9 @@ type.  Any Enum instance has an automatic EnumGC instance, but this is not
 provided because the type variable is ambiguous, so must be explicitly
 provided.
 
+A default instance of EnumGC for Integer is provided by 
+giving arbitrary bounds of double the Int boundaries.
+
 \begin{code}
 class EnumGC a where
   base     :: BaseEnum a
@@ -124,7 +133,11 @@ instance EnumGC Label where
 
 instance EnumGC Int where
   base = let c = (toInteger (maxBound::Int)) - (toInteger (minBound::Int)) + (1 :: Integer)
-         in Base c fromInteger
+         in Base c (\i -> (fromInteger (i - (toInteger (maxBound::Int)))))
+
+instance EnumGC Integer where
+  base = enumInteger ( (2::Integer) * (toInteger (minBound::Int))
+                     , (2::Integer) * (toInteger (maxBound::Int)) )
 
 instance EnumGC Char where
   base = let c = ((toInteger.fromEnum) (maxBound::Char)) 
@@ -132,24 +145,4 @@ instance EnumGC Char where
          in Base c (toEnum.fromInteger)
 \end{code}
 
-Very large base enumerations may be more efficient when memoized. 
-Only the selector is memoized as the counter is not a function.
-It is appropriate to memoize the resulting enumeration using eMemoize, 
-which  selects the current default memoization technique.
-Other memoize techniques can be located in the Base.Memoize module.
 
---\begin{code}
-beMemoize :: BaseEnum a -> BaseEnum a
-beMemoize (Base c s) =  makeBaseEnum c (memoize s)
-
-beProd :: ( -> b -> c Label) -> BaseEnum a -> BaseEnum b -> Enumeration c Label
-beProd con e1@(Base c1 _) e2@(Base c2 _) = mkEnumeration c' s'
-  where c' r   = if r == 1 then (c1 * c2) else 0
-        s' r n = bsProd con e1 e2 r n
-bsProd :: (a -> b -> c Label) -> BaseEnum a -> BaseEnum b -> Selector c Label
-bsProd con (Base _ s1) (Base c2 s2) r n | r == 1 = 
-   let (i1,i2) = n `divMod` c2
-   in con (s1 i1) (s2 i2)
-bsProd _ _ _ _ _ | otherwise = undefined
-
---\end{code}
