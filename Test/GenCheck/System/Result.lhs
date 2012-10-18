@@ -1,10 +1,7 @@
-A test result is a collective term for the individual results
-of each test case and the overall conclusion of pass or fail 
-based on those results.  A test result should also include
-the value of at least one failing test case if there are any.
-The interpretation of the results to form the overall verdict
-and the number of test failures to compute before terminating the test
-will vary with the nature of the test context.
+A test result is a collective term for the individual result
+of each test case and the overall verdict of pass or fail for the test.
+The test result may also include certain details about the test,
+in particular the input value of the test, but not necessarily.
 
 GenCheck test systems work with a standard Result class, a partition (instance
 of Partition) of the individual test results (instances of Verdict).  The
@@ -37,6 +34,57 @@ import Test.GenCheck.Base.Datum as Datum( Datum(..))
 import Test.GenCheck.Base.LabelledPartition as Partition(LabelledPartition(..))
 import qualified Test.GenCheck.Base.LabelledPartition as Partition(filter)
 
+\end{code}
+
+The verdict of a set of tests is the conjugate of the individual Boolean results.
+GenCheck test results are stored in a LabelledPartition,
+and are instances of the Verdict class,
+so the LabelledPartition is also a verdict,
+and the following functions apply:
+
+\begin{description}
+\item [result] determine if all of the tests in the container passed
+\item [resultPartial] determine if a subset of the tests all passed
+\end{description}
+
+LabelledPartitions are also naturally monoids, 
+which allows partitions of partitions.
+
+These two functions form an implicit Result class
+for foldable containers of verdicts.
+
+\begin{code}
+
+result :: (LabelledPartition c k v, Verdict r) => c k (v r) -> Bool
+result cxs = Partition.fold (\_ x y -> (verdict x) && y) True cxs
+
+resultPartial :: (LabelledPartition c k v, SummaryVerdict v, Ord k, 
+    Verdict r) => c k (v r) -> k -> Bool
+resultPartial cxs k = maybe True summaryverdict $ Partition.lookup k cxs
+\end{code}
+
+The DetailedResult class represents partitions of test data and results.
+It exposes the test values in the container (\emph{cases} method)
+and allows just the failing cases to be extracted.
+Any labelled partition of test data and results is 
+an automatic instance of DetailedResult.
+
+\begin{code}
+class (Verdict r, Datum r) => DetailedResult c v r where
+  cases    :: c (v r) -> c (v (DataType r))
+  failures :: c (v r) -> c (v r)
+
+instance (LabelledPartition c k v, Verdict r, Datum r, Ord k, Functor v, 
+    Functor (c k)) => DetailedResult (c k) v r where
+  cases    = fmap (\xs -> fmap Datum.datum xs)
+  failures = Partition.filter (\_ x -> not (verdict x) )
+\end{code}
+
+Reporting functions print a summary of the result to the command line.
+These are very primitive reporting functions and are included for convenience
+and to serve as templates for other reporting functions.
+
+\begin{code}
 dspVerdict :: (LabelledPartition c k v, Verdict r, DetailedResult (c k) v r) => String -> c k (v r) -> IO (Bool)
 dspVerdict lbl res =
   let fs = failures res
@@ -79,38 +127,3 @@ dspTestCases res =
                                putStrLn ""
 \end{code}
 
-When the elements of a LabelledPartition are test results,
-e.g. instances of Verdict, then the LabelledPartition is also a verdict,
-and the following apply:
-
-\begin{description}
-\item [result] determine if all of the tests in the container passed
-\item [resultPartial] determine if a subset of the tests all passed
-\end{description}
-
-LabelledPartitions are also naturally monoids, which allows partitions of
-partitions.
-
-\begin{code}
-result :: (LabelledPartition c k v, Verdict r) => c k (v r) -> Bool
-result cxs = Partition.fold (\_ x y -> (verdict x) && y) True cxs
-
-resultPartial :: (LabelledPartition c k v, SummaryVerdict v, Ord k, 
-    Verdict r) => c k (v r) -> k -> Bool
-resultPartial cxs k = maybe True summaryverdict $ Partition.lookup k cxs
-\end{code}
-
-There is no requirement on the result class to expose the test case values.
-The DetailedResult class extends the Result class by exposing the test values, 
-and allowing just the failing cases to be extracted.
-
-\begin{code}
-class (Verdict r, Datum r) => DetailedResult c v r where
-  cases    :: c (v r) -> c (v (DataType r))
-  failures :: c (v r) -> c (v r)
-
-instance (LabelledPartition c k v, Verdict r, Datum r, Ord k, Functor v, 
-    Functor (c k)) => DetailedResult (c k) v r where
-  cases    = fmap (\xs -> fmap Datum.datum xs)
-  failures = Partition.filter (\_ x -> not (verdict x) )
-\end{code}
