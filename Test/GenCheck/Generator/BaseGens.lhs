@@ -134,25 +134,22 @@ but strings are used frequently so a more efficient implementation is desirable.
 \begin{code}
 genStrRangeAll :: (Char,Char) -> Generator String
 genStrRangeAll (a,z) r = combine r [a..z]
-genStrDfltCharAll, genStrLowCharAll, genStrUpperCharAll, genStrDigitCharAll :: Generator String
 genStrDfltCharAll    = genStrRangeAll (' ','~')
 genStrLowCharAll     = genStrRangeAll ('a','z')
-genStrUpperCharAll   = genStrRangeAll ('A','Z')
 genStrDigitCharAll   = genStrRangeAll ('0','9')
 
-genStrRangeRnd :: StdGen -> (Char,Char) -> Generator String
-genStrRangeRnd s (a,z) r = 
-   let (str,s') = bldStr s (a,z) r in str : (genStrRangeRnd s' (a,z) r)
-genStrLowRnd, genStrUpperRnd, genStrDigitRnd :: StdGen -> Generator String
-genStrLowRnd    s = genStrRangeRnd s ('a','z')
-genStrUpperRnd  s = genStrRangeRnd s ('A','Z')
-genStrDigitRnd  s = genStrRangeRnd s ('0','9')
+genStrRangeRnd :: (Char,Char) -> StdGen -> Generator String
+genStrRangeRnd (a,z) s r = 
+   let (str,s') = bldStr (a,z) s r in str : (genStrRangeRnd (a,z) s' r)
+genStrDfltRnd  = genStrRangeRnd (' ','~')
+genStrLowRnd   = genStrRangeRnd ('a','z')
+genStrDigitRnd = genStrRangeRnd ('0','9')
 
-bldStr :: StdGen -> (Char,Char) -> Rank -> (String, StdGen)
-bldStr s (_,_) 0 = ("",s)
-bldStr s (a,z) r = 
+bldStr :: (Char,Char) -> StdGen -> Rank -> (String, StdGen)
+bldStr (_,_) s 0 = ("",s)
+bldStr (a,z) s r = 
   let (c,s') = randomR (a,z) s 
-      (str,s'') = bldStr s' (a,z) (r-1)
+      (str,s'') = bldStr(a,z)  s' (r-1)
   in (c : str, s'')
  
 \end{code}
