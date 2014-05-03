@@ -85,7 +85,9 @@ These are very primitive reporting functions and are included for convenience
 and to serve as templates for other reporting functions.
 
 \begin{code}
-dspVerdict :: (LabelledPartition c k v, Verdict r, DetailedResult (c k) v r) => String -> c k (v r) -> IO (Bool)
+dspVerdict :: (LabelledPartition c k v, 
+               Ord k, Functor (c k),
+               Verdict r, DetailedResult (c k) v r) => String -> c k (v r) -> IO (Bool)
 dspVerdict lbl res =
   let fs = failures res
       n  = Partition.size res
@@ -96,6 +98,7 @@ dspVerdict lbl res =
         return $ result res
 
 dspSummary :: (Datum r, Show k, Show (v (DataType r)), LabelledPartition c k v, 
+               Ord k, Functor (c k),
                DetailedResult (c k) v r) => String -> c k (v r) -> IO ()
 dspSummary lbl res = 
   let fs = failures res
@@ -107,6 +110,7 @@ dspSummary lbl res =
                      dspTestCases $ (cases fs)
 
 dspDetails :: (Datum r, Show k, Show (v r), LabelledPartition c k v, 
+               Ord k, Functor (c k),
                DetailedResult (c k) v r) => String -> c k (v r) -> IO ()
 dspDetails lbl res = 
   let fs = failures res

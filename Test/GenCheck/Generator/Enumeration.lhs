@@ -91,7 +91,7 @@ module Test.GenCheck.Generator.Enumeration
 , Label(..)
 ) where 
 
-import Math.Combinat.Combinations (combinations1)
+import Math.Combinat.Compositions (compositions1)
 import Data.Function.Memoize
 
 import Test.GenCheck.Base.Base(Rank,Count)
@@ -211,15 +211,15 @@ cNode  r = if r == 1 then (1::Count) else (0::Count)
 cSum, cProd :: Counter -> Counter -> Counter
 cSum c1 c2 r = c1 r + c2 r
 cProd c1 c2 r = sum $ map product (sizes r)
-    where sizes r' = map (zipWith ($) [c1, c2]) (combinations1 2 r')
+    where sizes r' = map (zipWith ($) [c1, c2]) (compositions1 2 r')
 cSum3, cProd3 :: Counter -> Counter -> Counter -> Counter
 cSum3 c1 c2 c3 r = c1 r + c2 r + c3 r
 cProd3 c1 c2 c3 r = sum $ map product (sizes r)
-    where sizes r' = map (zipWith ($) [c1, c2, c3]) (combinations1 3 r')
+    where sizes r' = map (zipWith ($) [c1, c2, c3]) (compositions1 3 r')
 cSum4, cProd4 :: Counter -> Counter -> Counter -> Counter -> Counter
 cSum4 c1 c2 c3 c4 r = c1 r + c2 r + c3 r + c4 r
 cProd4 c1 c2 c3 c4 r = sum $ map product (sizes r)
-    where sizes r' = map (zipWith ($) [c1, c2, c3, c4]) (combinations1 4 r')
+    where sizes r' = map (zipWith ($) [c1, c2, c3, c4]) (compositions1 4 r')
 
 \end{code}
 
@@ -309,30 +309,30 @@ The output is a function from rank to a list of the number of
 decompositions of the rank, with a minimum rank of 1, of pairs consisting of
 the count and what is actually a pair (or triple) of ranks.
 
-Combinations1 comes from the Math.Combinat package,
+Compositions1 comes from the Math.Combinat package,
 and returns a list of length n lists of the partition;
-e.g. |combinations1 2 5 = [[1,4],[2,3],[3,2],[4,1]]|.
+e.g. |compositions1 2 5 = [[1,4],[2,3],[3,2],[4,1]]|.
 Note that the rank of all structures must be at least 1.
 
 \begin{code}
 -- Rank -> [(Count, [r1,r2])] where r1 + r2 = Rank
 enumProd :: (Rank -> Count) -> (Rank -> Count) -> (Rank -> [(Count,[Rank])])
 enumProd c1 c2 r = zip (map product sizes) combs
-    where combs = combinations1 2 r
+    where combs = compositions1 2 r
           sizes = map (zipWith ($) [c1, c2]) combs
 
 -- Rank -> [(Count, [r1,r2,r3])] where r1 + r2 + r3 = Rank
 enumProd3 :: (Rank -> Count) -> (Rank -> Count) -> (Rank -> Count) 
                -> (Rank -> [(Count,[Rank])])
 enumProd3 c1 c2 c3 r = zip (map product sizes) combs
-    where combs = combinations1 3 r
+    where combs = compositions1 3 r
           sizes = map (zipWith ($) [c1, c2, c3]) combs
 
 -- Rank -> [(Count, [r1,r2,r3,r4])] where r1 + r2 + r3 + r4 = Rank
 enumProd4 :: (Rank -> Count) -> (Rank -> Count) -> (Rank -> Count) -> (Rank -> Count) 
                -> (Rank -> [(Count,[Rank])])
 enumProd4 c1 c2 c3 c4 r = zip (map product sizes) combs
-    where combs = combinations1 4 r
+    where combs = compositions1 4 r
           sizes = map (zipWith ($) [c1, c2, c3, c4]) combs
 
 \end{code}
