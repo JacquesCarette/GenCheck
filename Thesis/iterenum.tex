@@ -1,0 +1,365 @@
+%\section{Iterative Algorithm for Enumerating Algebraic Data Types}
+
+Combinatorial structures were introduced to provide 
+a mathematical proof for the existence of 
+ranked enumerations of recursive algebraic data types.
+\cite{FlajoletZC94} also provides \emph{iterative} algorithms 
+for constructing and efficiently computing 
+the enumeration count and selector functions.
+A summary of the algorithm is provided here,
+restricted to the systems of polynomial constructions of interest,
+(i.e. excluding the constructions set and cycle
+which are not implementable in Haskell).
+This algorithm was used in \GC to create computable enumerations of Haskell types
+for use in automated test case generation,
+presented in chapter \ref{chap:GCimplement}.
+
+\subsection{Iterative Counting Sequence}
+
+A class of constructions can be considered 
+the limit of a sequence of approximations to the class
+restricted to structures over sets of elements up to a maximum size.
+The iterative solution begins with computing the number of structures of each size, starting from $0$.
+The count function $c_\spec{F} : \nat \rightarrow \nat$,
+where $\specF, \specG$ are combinatorial classes,
+F and G are their counting sequences, 
+and n is the size, is constructed inductively:
+
+\begin{equation}
+\begin{aligned}
+c_{\epsilon}(n) & =  \begin{cases} 1 & n = 0  \\  0 & \text{otherwise}   \end{cases} \\
+c_{\specX}(n)  & =  \begin{cases} 1 & n = 1  \\  0 & \text{otherwise}   \end{cases} \\
+c_{(\specF \splus \specG)}(n) & =  c_{\specF}(n) +  c_{\specG}(n)\\
+c_{\specF \sprod \specG}(n) & = \sum_{k=0}^{n} c_{\specF}(k)  c_{\specG}(n-k)
+\end{aligned}
+\end{equation}
+
+\noindent 
+The full presentation is given in  \cite{FlajoletZC94}, 
+and is shown to be an $O(n^{2})$ cost computation
+(it is assumed that the counting sequences will be computed once).
+
+The count function of a triangular (non-recursive) construction follows from the specification.
+For general constructions, the count function is the solution of a non-linear set of equations,
+such as for a binary tree with both singleton and nullary leaves:
+
+\begin{align*}
+\spec{T} & = \specI \splus \specX \splus (\spec{T} \sprod \spec{T}) \\
+\begin{split}
+c_{\spec{T}}(n) & = c_{\specI}(n) + c_{\specX}(n) + c_{\spec{T} \sprod \spec{T}} \\
+ & = c_{\specI}(n) + c_{\specX}(n) + \sum_{k=0}^{n} c_{\spec{T}}(k) c_{\spec{T}}(n-k)
+\end{split}
+\end{align*}
+
+\noindent
+In this case allowing $0$ size $\epsilon$ constructions in the specification
+causes the term $c_{\spec{T}}(n)$ to appear on both sides of the equation,
+and the count function must be solved as an implicit equation.
+
+The system of questions is simplified if products that permit component structures of size 0 are not allowed,
+i.e. every system is $\epsilon$-free.
+The counting functions for the products 
+(\cite{FlSaZi91}, pgs 18-20, not to be confused with the count function for \emph{labelled} structures)
+are given by:
+
+$$ c_{\specF \sprod \specG}(n) = \sum_{k=1}^{n-1} c_{\specF}(k) \sprod c_{\specG}(n-k) $$
+
+\noindent
+and so form a triangular system of equations.
+
+The decision to assign Haskell nullary constructors a weight of $1$ instead of $0$
+guaranteed that the counting function is explicit,
+and the construction of the counting and selection functions throughout this thesis
+and the \GC package assume that there are no $0$ weight constructions.
+
+The implementation of the count function in \GC (presented below)
+demonstrates the inductive construction of the count functions.
+Note that disjoint unions and products with more than two arguments
+are handled explicitly instead of using pairwise interpretations;
+also note that constants are given a rank of $1$,
+as if they were singletons over a sort of a single element,
+to ensure epsilon-freeness.
+
+\begin{lstlisting}
+type Counter      = Rank -> Count
+
+cConst, cNode :: Counter
+cConst r = if r == 1 then (1::Count) else (0::Count)
+cNode  r = if r == 1 then (1::Count) else (0::Count)
+
+cSum, cProd :: Counter -> Counter -> Counter
+cSum c1 c2 r = c1 r + c2 r
+cSum3, cProd3 :: Counter -> Counter -> Counter -> Counter
+cSum3 c1 c2 c3 r = c1 r + c2 r + c3 r
+cSum4, cProd4 :: Counter -> Counter -> Counter -> Counter -> Counter
+cSum4 c1 c2 c3 c4 r = c1 r + c2 r + c3 r + c4 r
+
+cProd c1 c2 r = sum $ map product (sizes r)
+    where sizes r' = map (zipWith ($) [c1, c2]) (compositions1 2 r')
+cProd3 c1 c2 c3 r = sum $ map product (sizes r)
+    where sizes r' = map (zipWith ($) [c1, c2, c3]) (compositions1 3 r')
+cProd4 c1 c2 c3 c4 r = sum $ map product (sizes r)
+    where sizes r' = map (zipWith ($) [c1, c2, c3, c4]) (compositions1 4 r')
+
+\end{lstlisting}
+
+\subsection{Iterative Index}
+
+The selector function of an enumeration is based on 
+indices over the constructions of a common size.
+Each index is a total ordering of the constructions of a given size,
+denoted here as $ \combdex{\spec{F}}(n) :: \specn{F}{n} \ra [1 .. c_{\spec{F}}(n)], n \ge 0$.
+The selector function is the inverse of the indexing function for each size.
+If there are no admissible constructions of a given size for the specification,
+then the index is empty ($[\ ]$) and the selector function is defined nowhere for that size.
+The indexing of the constructions is an abstract function and never implemented,
+but is the implicit basis for the inductive definition of the selector function to follow.
+
+The index function used in \cite{FlajoletZC94},
+and in \GC enumerations,
+is the canonical left to right, top to bottom, approach to counting the elements of unions and Cartesian products,
+defined inductively based on the class specification:
+
+\begin{equation}
+\begin{aligned}
+\combdex{\specI}(n)   & =  \begin{cases} [1] & n = 0  \\  [\ ] & \text{otherwise}   \end{cases} \\
+\combdex{\specX}(n)   & =  \begin{cases} [1] & n = 1  \\  [\ ] & \text{otherwise}   \end{cases} \\
+\combdex{(\specF \splus \specG)}(n) & =  \combdex{\specF}(n) \concat  \combdex{\specG}(n) \\
+     & =  [1\ \ldots\ (c_{\specn{F}{n}} + c_{\specn{G}{n}})] \\
+\combdex{(\specF \sprod \specG)}(n)   
+    & = \combdex{\specn{F}{0} \sprod \specn{G}{n}}(n) \concat\ \combdex{\specn{F}{1} \sprod \specn{G}{n-1}}(n) \concat\
+            \ldots \concat \combdex{\specn{F}{n} \sprod \specn{G}{0}}(n) \\
+    & = [1 \ldots\ (\sum_{k=0}^{n} (c_{\specn{F}{k}} c_{\specn{G}{n-k}}) ]
+\end{aligned}
+\end{equation}
+
+\noindent where $\concat$ is the concatenation of two indices
+with an appropriate renumbering of the second index.
+
+\noindent
+When no structures of size 0 are allowed in products,
+the index over products is given by
+
+\begin{equation}
+\begin{aligned}
+\combdex{(\specF \sprod \specG)}(n)   
+    & = \combdex{\specn{F}{1} \sprod \specn{G}{n-1}}(n) \concat\ \combdex{\specn{F}{2} \sprod \specn{G}{n-2}}(n) \concat\
+            \ldots \concat \combdex{\specn{F}{n-1} \sprod \specn{G}{1}}(n) \\
+    & = [1 \ldots\ (\sum_{k=1}^{n-1} (c_{\specn{F}{k}} c_{\specn{G}{n-k}}) ]
+\end{aligned}
+\end{equation}
+
+\noindent
+As with the counting function,
+when the guarantee of $\epsilon$-freeness is not available,
+the combinatorial class must first be proven admissible before 
+applying the more general indexing / selection of products.
+
+\subsection{Iterative Selector Function}
+
+The selection function for a specification 
+($ s_{\specF}(n) : \combdex{\spec{F}}(n) \ra \specn{F}{n} $) inverts the above algorithm
+to provide the mapping of the index interval to the constructs of the specified size.
+The selection function for each size of construct 
+can be constructed inductively 
+from the counts and selection functions of the smaller constructs,
+following the class specification to determine 
+which operand from each product or disjoint union
+the desired element is contained in.
+
+This ``de-referencing'' of the index value requires 
+some rather unattractive but conceptually simple bookkeeping.
+The algorithm below provide an inductive definition of
+the selector function of a combinatorial class,
+based on the known counts of the classes in the system.
+Letting $\specF, \specG$ be constructions specifications:
+
+\begin{df}[Iterative Selector Function]
+
+
+\begin{equation}
+\begin{aligned}
+s_{\epsilon} (n, i) & = 
+     \begin{cases} \epsilon & n = 0 \text{ and } i = 1 \\ 
+                               \text{undefined } & \text{otherwise}
+                               \end{cases} \\
+s_{\specX} (n, i)   & =  
+     \begin{cases} \specX & n = 1 \text{ and } i = 1 \\ 
+                               \text{undefined } & \text{otherwise}
+                               \end{cases} \\
+s_{\specF \splus \specG} (n, i) & =
+    \begin{cases} s_{\specF} (n, i) & 1 \le i \le c_{\specF}(n) \\
+                              s_{\specG} (n, i - c_{\specF}(n)) & (c_{\specF}(n) + 1) \le i \le c_{\spec{G}}(n)
+                              \end{cases} \\
+s_{\specF \sprod \specG}(n,i) & = s_{\specn{F}{k} \sprod \specn{G}{n-k}}(n, i -  \sum_{j=0}^{k-1}\ c_{\specn{F}{j} \specn{G}{n-j}}(n)) \\
+& \text{where } \sum_{j=0}^{k-1}\ c_{\specn{F}{j} \spec{G}{n-j}}(n) < i \le \sum_{j=0}^{k}\ c_{\specn{F}{j}  \specn{G}{n-j}}(n)
+\end{aligned}
+\end{equation}
+\end{df}
+
+
+\noindent
+Dereferencing the index of a product treats it as a disjoint union of pairs of fixed size specifications,
+requiring the count of each of the product components,
+then picking the appropriate $k$ and using the selection function of those components.
+Where $\epsilon$ constructions are not allowed,
+the same algorithm is used but ignoring $0$ sized constructions in the pairs.
+
+The implementation of the selection function in \GC (presented below)
+demonstrates the inductive construction.
+Disjoint unions and products with more than two arguments
+are again handled explicitly,
+and constants are given a rank of $1$.
+The selector combinators use the |interval| and |deref| functions
+to determine which operand of a product or sum the desired value inhabits;
+|selector_error| handles the exception of an out of range selection.
+
+\begin{lstlisting}
+data Enumeration c a = Enum Counter (Selector c a)
+counter :: Enumeration c a -> Counter
+counter (Enum c _) = c
+selector :: Enumeration c a -> Selector c a
+selector (Enum _ s) = s
+
+sConst,sNode :: (Num a, Num b, Eq a, Eq b) => t x -> a -> b -> t x
+sConst x r n = if (r==1) && (n==1) then x else selector_error
+sNode  x r n = if (r==1) && (n==1) then x else selector_error
+sSum :: Enumeration c a -> Enumeration c a -> Selector c a
+sSum (Enum c1 s1) (Enum c2 s2) r n = 
+  let n1 = c1 r in if (n <= n1) then s1 r n 
+                   else if (n <= c2 r) then s2 r (n - n1)
+                   else selector_error
+
+sSum3 :: Enumeration c a -> Enumeration c a -> Enumeration c a -> Selector c a
+sSum3 (Enum c1 s1) (Enum c2 s2) (Enum c3 s3) r n = 
+  let n1 = c1 r 
+      n2 = c2 r
+      in if          (n <= n1)   then s1 r n 
+           else   if (n <= n2)   then s2 r (n - n1)
+           else   if (n <= c3 r) then s3 r (n - (n1+n2))
+           else   selector_error
+
+sSum4 :: Enumeration c a -> Enumeration c a -> 
+		Enumeration c a -> Enumeration c a -> Selector c a
+...
+
+sProd ::  (a x -> b x -> c x) -> Enumeration a x -> 
+		Enumeration b x ->Selector c x
+sProd con (Enum c1 s1) (Enum c2 s2) r n =
+   let ([r1,r2],n') = interval n $ enumProd c1 c2 r
+       [n1,n2]      = deref [c1 r1, c2 r2] n'
+   in con (s1 r1 n1) (s2 r2 n2)
+
+sProd3 ::  (a x -> b x -> c x -> d x) -> Enumeration a x -> Enumeration b x -> 
+		Enumeration c x -> Selector d x
+sProd3 con (Enum c1 s1) (Enum c2 s2)  (Enum c3 s3) r n =
+   let ([r1,r2,r3],n') = interval n $ enumProd3 c1 c2 c3 r
+       [n1,n2,n3]      = deref [c1 r1, c2 r2, c3 r3] n'
+   in con (s1 r1 n1) (s2 r2 n2) (s3 r3 n3)
+
+sProd4 ::  (a x -> b x -> c x -> d x -> e x) -> Enumeration a x -> 
+    Enumeration b x -> Enumeration c x -> Enumeration d x -> Selector e x
+...
+
+\end{lstlisting}
+
+Enumerations index $n$-products as $n$-dimensional cubes.
+\emph{interval} takes an index into a rank $r$ $n$-product and determines the 
+ranks $(r_1, ..., r_n)$ of each of the $n$ components of the $n$-product where 
+$\sum r_{i} = r$, and an index into just the $n$-products of that particular rank
+distribution.
+
+\emph{deref} converts the one dimensional index into the $n$-product,
+along with the ranks of each of the components of the product,
+into an $n$-tuple index into each component.
+
+\begin{lstlisting}
+interval :: (Integral k) => k -> [(k,a)] -> (a, k)
+interval k' ps = intv k' 0 ps where
+  intv _ _ [] = error "Trying to partition an empty interval"
+  intv k _ _ | k < 1 = error "Trying to partition a one element interval"
+  intv k acc ((p, x) : ps') = 
+     let acc' = acc + p 
+     in if (k <= acc') then (x, (k-acc)) else intv k acc' ps'
+
+deref :: (Integral k) => [k] -> k -> [k]
+deref ds k'  | k' >= 1 =  drf (dimd ds) k'
+             | otherwise  = error "Dereferencing below 1"
+  where
+    drf (dmax:[1]) k | k <= dmax = [k]
+    drf (dmax:(dm:dims)) k | k <= dmax =
+      let (c,j) = ((k-1) `divMod` dm)
+          ds' = drf (dm:dims) (j+1)
+      in (c+1) : ds'
+    drf _ _ = error "impossible dereference"
+    dimd [] = [1]
+    dimd (d:ds') = let (md:mds) = dimd ds' in (md*d : (md:mds))
+\end{lstlisting}
+
+\subsection{Iterative Enumerations}
+Given the combinator functions for count and selector functions,
+enumerations for a type are constructed by mirroring the type construction
+with these combinators.
+The constant |A| is from a type |Label|, and represents an atom
+which will be replaced with values in a \GC substitution generator.
+
+A \GC enumeration for a simple tree structure demonstrates the simplicity of constructing the enumeration.
+
+\begin{lstlisting}
+data BinTree a = BTNode a | BTBr (BinTree a) (BinTree a)
+instance Enumerated BinTree where
+  enumeration = eBinTree
+
+eBinTree :: Enumeration BinTree Label
+eBinTree = eMemoize $ e
+  where e = eSum (eNode (BTNode A)) 
+                 (eProd BTBr eBinTree eBinTree)
+
+\end{lstlisting}
+
+
+The \GC implementation bundles the count and selector combinators in an |Enumeration| structure for convenience.
+Note that the pattern matching on the sums must be lazy (irrefutable) to allow the
+manual counting of the possible structures of that size to terminate the
+recursive construction of the patterns.
+Also note that enumerations are memoized to ensure the count and selector functions
+are not continuously recalculated.
+
+\begin{lstlisting}
+data Enumeration c a = Enum Counter (Selector c a)
+data Label = A | B | C | D | E | F | G 
+  deriving (Show, Eq, Enum, Bounded)
+
+eMemoize :: Enumeration c a -> Enumeration c a
+eMemoize (Enum c s) =  mkEnum (memoize c) (memoize s)
+
+eConst, eNode :: c a -> Enumeration c a
+eConst x = mkEnum cConst (sConst x)
+eNode  x = mkEnum cNode  (sNode  x)
+
+eSum :: Enumeration c a -> Enumeration c a -> Enumeration c a
+eSum  e1@(~(Enum c1 _)) e2@(~(Enum c2 _)) = 
+		mkEnum (cSum c1 c2) (sSum e1 e2)
+eSum3 :: Enumeration c a -> Enumeration c a -> 
+		Enumeration c a -> Enumeration c a
+eSum3 e1@(~(Enum c1 _)) e2@(~(Enum c2 _)) e3@(~(Enum c3 _)) 
+          = mkEnum (cSum3 c1 c2 c3) (sSum3 e1 e2 e3)
+eSum4 :: Enumeration c a -> Enumeration c a -> 
+		Enumeration c a -> Enumeration c a -> Enumeration c a
+...
+
+eProd :: (a x -> b x -> c x) -> Enumeration a x -> 
+		Enumeration b x -> Enumeration c x
+eProd con e1@(Enum c1 _) e2@(Enum c2 _) = 
+		mkEnum (cProd c1 c2) (sProd con e1 e2)
+eProd3 :: (a x -> b x -> c x -> d x) -> Enumeration a x -> 
+		Enumeration b x -> Enumeration c x -> Enumeration d x
+eProd3 con e1@(Enum c1 _) e2@(Enum c2 _) e3@(Enum c3 _) = 
+         mkEnum (cProd3 c1 c2 c3) (sProd3 con e1 e2 e3)
+...
+
+\end{lstlisting}
+
+
+
+

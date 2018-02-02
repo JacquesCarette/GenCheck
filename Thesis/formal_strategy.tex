@@ -1,0 +1,80 @@
+%\section{Sampling and Test Strategies}
+%\gordon{Formally define 'strategy' and how it relates to sampling}
+
+\subsection{Generators}
+\gordon{ defined by type, sampling method, (finite or infinite) }
+\gordon{ already gave formal definitions of generators, but should have done that here I think }
+
+Test case generators were described in section \ref{???}
+as the basic mechanism for generating test cases.
+A \emph{generator} is a function that instantiates 
+a subset of the possible input values for a property for use as test cases.
+The selection of test cases forms a \emph{sample} of the property's domain,
+or a part of the property's domain,
+and possibly invalid test cases from outside the domain for conditional properties.
+The generator also provide an order to the test cases they generate,
+interpreted as the priority of the values for testing,
+although it may simply be an artifact of the implementation of the generator.
+
+
+\begin{df}[Valid Generator]
+A generator for a conditional property is valid if it only creates valid test cases,
+%i.e. $\gen{\dom{\property}}$ :: $\[\powerset{\dom{\property}}\]$
+\end{df}
+
+
+It was recommended earlier that the test framework support
+the construction of generators using the four standard strategies
+(exhaustive, boundary / extreme, uniform and random);
+a test suite strategy can be defined as a collection of these strategies.
+These should be implemented in a data type generic way.
+
+Should also be possible to construct custom generators that 
+are arbitrarily assigned as satisfying one of those sampling strategies.
+
+Should be able to add other generator sampling strategies 
+to be included in the test suite strategies.
+
+There should be no requirement that generators produce finite lists of test cases,
+as Haskell's lazy evaluation permits infinite lists to be defined.
+For example, the random generators from \QC are not finite,
+and as can be seen in the discussion of substitution and composition below,
+infinite generators can be quite useful.
+Test suite building should function with both finite and infinite generators,
+and test programs should ensure termination through 
+carefully selecting a fixed number of values from a generator,
+or only selecting all values when there is an expectation of finiteness.
+
+Ê%base generator_(type,sample): C(a), ranked generator_(type,sample): Nat -> C(a)
+
+\subsection{Test strategy}
+%base = \{(sampling method, num. cases)\}, ranked = \{(sampling method, rank, num. cases)\}
+
+\begin{df}[Sampling Strategy]
+blah
+\end{df}
+
+\subsection{Generator Dictionaries}
+Access generators for a type given a sampling method
+Standardized sampling methods allows standardized strategies.
+
+%generator dictionary: sample -> generator_(type,sample) (base or ranked)
+%	Ê Êstandard sampling strategies = {Exhaust, Random, Uniform n, Boundary}, could add others
+
+\subsection{Test Suite Builders}
+%Build (Test strategy (sample, (rank), cases), sample -> generator_(type, sample))Ê
+There is a ``strategy'' in the construction of a test suite,
+and that strategy will consist of instructions to automated test case generators,
+loading cases from a file, interactively requesting cases etc.
+Test suites might be composed of 
+multiple collections of test cases from different sources.
+It should be possible to merge these sources into a single test suite
+without biasing the scheduling and evaluation of these test cases.
+There should be a language to construct test suites
+in the same way there is a language to construct test case generators.
+The language will decouple the strategy for building the test suite
+from the provision of the actual test cases,
+to allow test suite strategies to be researched independently.
+
+\subsubsection{Traversing a Test Suite}
+\gordon{must define these standard operations}

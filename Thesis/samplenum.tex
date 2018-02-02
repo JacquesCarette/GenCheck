@@ -1,0 +1,197 @@
+%section{Substitution in Enumeration Generators}
+
+The study of combinatorial constructions is generally concerned
+about the number of ``shapes'' satisfying a specification,
+with the shape of the construct consisting of products of atoms and epsilon values.
+A test case generator, however,
+must produce concrete terms that result from substituting values for the atoms,
+i.e. treating the atoms as singleton constructors encapsulating a value of the appropriate sort.
+There are two choices for dealing with each of the atoms in a specification 
+to construct a term generator from the enumeration:
+
+\begin{enumerate}
+\item Extend the construct's specification, and hence enumeration, 
+to include all allowable value substitutions from the underlying sort ,
+replacing the atom with a disjoint union of each of those values.
+The counting, index and selector functions naturally extended
+by replacing the counts for the atoms with a totally ordered set of the substituting values,
+in the same way the ordinary generating functions are extended,
+as discussed in section \ref{sec:combstruct}.
+\item Allow the generator to sample the enumerated \emph{shapes} of the constructions,
+the unpopulated constructs with the atoms as placeholders.
+These will be called \emph{structures} to be distinct from concrete terms.
+This generator will subsequently be combined with a generator for values of the appropriate type
+to produce the concrete terms for use in testing.
+This kind of generator is called a substitution generator.
+\end{enumerate}
+
+\noindent
+This choice can be made independently for each of the atoms in the specification,
+so the resulting enumeration can be over concrete terms,
+or structures with some or all of the distinct atom types 
+that must later be substituted.
+
+The choice of expanding an enumeration to include the values
+or post-sampling substitution is pragmatic, 
+depending on the nature of the underlying sorts,
+and the significance of the data structures relative to the actual values in the test cases generated.
+In particular,
+if an atom represents a small number of allowable constants,
+such as a Boolean value,
+it may be preferable to include that substitution in the enumeration.
+If there are restrictions on nature of the substitution,
+such as if the values are selected without duplicates (replacement)
+or there are conditions on the elements of the substitution set,
+it may be easier to enumerate the them separately.
+On the other hand, it would not be desirable to include all of the values of a large Int class
+in the enumeration when generating test cases for a sort algorithm,
+as the actual values in each node make little impact on the test case.
+Note that the substitution approach may also be used if the values for the substitutions
+are themselve structures by ignoring their rank in the enumeration.
+For example, if a sort algorithm is to be tested by comparing strings,
+the length of the string may be ignored in the enumeration and 
+strings of different length selected as part of the value sampling methodology.
+Both approaches result in a sample of the constructions
+populated with the elements of the underlying set (or type),
+but the properties of the test data seta
+and the sampling methods used may be quite different.
+
+\subsection{Substitution Generators and Strategies}
+
+The \GC implementation of substitution generators is provided here
+as an illustration of how substitution combinators can be used
+to provide more options for test case generation.
+The |Structure| class defines a |substitution| method, the
+mechanical details of replacing the atoms in the structure with a single sort of elements.
+Classes for two sorted structures, etc. are simple mechanical extensions of the single sort substitution.
+Instances of Structure can be generated mechanically from the data constructor
+definitions via Template Haskell.
+
+The subst, substn and substAll functions below are generator combinators,
+creating substitution generators from structure and element generators.
+The ordered collection of values drawn from the element generator for insertion into a structure
+is referred to as a substitution tuple.
+
+\begin{description}
+\item[subst] populates each generated structure with one generated substitution tuple
+\item[substN] populates each generated structure with n substitution tuples
+\item[substAll] populates each structure with every substitution tuple
+        until exhausting the element generator (non-terminating for infinite generators)
+\end{description}
+
+
+\begin{lstlisting}
+class Structure c where
+  substitute    :: c a -> [b] -> (Maybe (c b), [b])
+
+subst :: Structure c => Generator (c a) -> Generator b -> Generator (c b)
+subst gfx gy r =  
+  let fxs = (gfx r)
+      ys  = gy 1
+  in gsub fxs ys
+
+gsub :: Structure c => [c a] -> [b] -> [c b]
+gsub [] _       = []
+gsub (fx:fxs) ys = 
+   let (mfy, ys') = substitute fx ys
+   in case mfy of
+        Nothing -> []
+        Just fy -> fy : (gsub fxs ys')
+
+substN :: Structure c => Int -> Generator (c a) -> Generator b -> Generator (c b)
+substN n gfx gy r = gsubN n n (gfx r) (gy 1)
+
+gsubN :: Structure c => Int -> Int -> [c a] -> [b] -> [c b]
+gsubN n _ _  _ | n < 1 = []
+gsubN _ 0 _  _         = []
+gsubN _ _ [] _         = []
+gsubN n k fxs@(fx:fxss) ys = 
+   let (mfy, ys') = substitute fx ys
+   in if k > 1 then maybe [] (\fy -> fy : (gsubN n (k-1) fxs ys')) mfy
+               else maybe [] (\fy -> fy : (gsubN n n fxss ys')) mfy 
+
+substAll :: Structure c => Generator (c a) -> Generator b -> Generator (c b)
+substAll gfx gy r = 
+  let ys = gy 1
+      fxs = gfx r
+  in gsubAll fxs ys
+
+gsubAll :: Structure c => [c a] -> [b] -> [c b]
+gsubAll [] _ = []
+gsubAll l@(fx:fxs) ys = 
+   let (mfy, ys') = substitute fx ys  -- subst elements into first structure
+       -- sub same ys into remaining list of structures, guaranteed finite
+       fys = catMaybes $  map (fst.((flip substitute) ys)) fxs
+   in maybe [] (\x -> x:(fys ++ (gsubAll l ys'))) mfy
+\end{lstlisting}
+
+The value of combinatorial complexity as the rank of a structure
+is most apparent in a substitution generator.
+For a structure with a single class of atoms,
+the number of values required to complete the substitution 
+is the rank of the structure.
+Where there are multiple classes of atoms,
+the rank will be composed of the number of required elements of each sort;
+any elements that were included in an expanded enumeration
+will also be part of this rank but will not require substitution.
+In either case, the substitution will be a function 
+providing a concrete term from a structure
+and an ordered tuple of values of each sort.
+
+Substitution of values for atoms introduces an new kind of choice 
+as part of the generator sampling strategy.
+The simplest approach to substitution is to 
+replace the atoms in each structure with generated values
+to replace the instances of the atoms, creating a single term for each,
+the approach described as ``step-by-step'' in section \ref{{adtgen}}.
+Other alternatives are:
+\begin{itemize}
+\item populate each structure with a fixed number of substitution tuples;
+\item generate a finite number of both structures and substitution tuples, 
+and populate all structures with all tuples;
+\item populate each structure with all permutations of the substitution tuple
+(this is particularly useful when testing symmetrical and anti-symmetrical properties).
+\end{itemize}
+The choice of substitution strategy will be based on 
+the goal of the test,
+the number of possible substitution sets and
+the cost of generating the structures.
+Note that substitution strategies are not specific to enumerative generators,
+and can be used for any substitution generator.
+
+%\subsection {Enumerative Test Strategy}
+%The availability of datatype generic sampling methods over enumerations
+%can be extended to produce entire \emph{test strategies} that are independent of the underlying data types.
+%A test strategy is the implementation of one or more sampling methods,
+%including stratified sampling methods and substitution strategies for ranked constructs,
+%that results in an executable test data set for a property based test.
+%An example of a compound sampling strategy that is suitable for property based testing
+%over a domain consisting of a general tree of integer values is :
+%
+%    \begin{enumerate}
+%    \item exhaustively select smallest / simplest test cases up to a certain size,
+%    uniformly sampling 10 integer values including the boundary values (largest positive and negative values)
+%    \item from where exhaustive testing is infeasible
+%    up to the maximum complexity that will be well tested:
+%    \begin{itemize}
+%    \item use uniform selection to establish coverage over all parts
+%    \item select the boundary structures, namely the empty tree and slngle leaf trees
+%    \item randomly select additional values to
+%    avoid any possible bias introduced from the uniform and boundary selection criteria
+%    \end{itemize}
+%     substituting an arbitrary ordering of 0, the boundary values, and random integer values for each tree
+%    \item randomly select a small number of values from random ranks up to some arbitrary maximum complexity,
+%    using the same integer value substitution strategy
+%    \end{enumerate}
+%
+%This particular strategy depends only on the exhaustive and well-tested complexity sizes
+%and a fairly generic integer test value generator,
+%and could be used for any Haskell algebraic data type.
+%The appropriateness of the strategy must be determined,
+%but it is distinctly superior to any single sampling methodology applied to the entire population of general integer trees.
+%A library of such datatype generic test strategies can be provided
+%to leverage the availability of complexity ranked enumerations
+%and substitution generators.
+
+
+

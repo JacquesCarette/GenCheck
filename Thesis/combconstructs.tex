@@ -1,0 +1,385 @@
+%\section{Combinatorial Constructions}
+
+In order to use an enumerative generator for a \pbt,
+an enumeration must exist, be computable,
+and for infinite types be associated with a ranking function.
+Combinatorial constructions  (\cite{FlajoletSedgewick2009}) provide the tools needed.
+In particular, combinatorial structures have well defined \emph{generating functions},
+providing a calculus for computing the number of structures 
+with a specified number of atoms,
+the combinatorial complexity (section \ref{complexgen}) of those structures.
+(\cite{FlSaZi91}) shows that these counts can be obtained efficiently,
+and the selector functions can be constructed using the same techniques,
+as implemented in Maple's |combstruct| module 
+(\cite{FlSa95}).
+
+Combinatorial constructions describes a class of structures significantly larger than those that can be implemented in Haskell,
+including data structures constructed with sets, multi sets, sequences and cycles.
+A subset of the class of combinatorial constructions,
+called the \emph{polynomial} constructions,
+provides a useful model of the types that concern us here.
+The combinatorial structures provide a model of type constructors,
+with the atoms representing the type arguments.
+The complexity measure is the size of the structure underlying the term,
+namely the number of atoms that must be substituted with values%
+\footnote{This is a particularly useful measure of complexity 
+for substitution generators, as the number of atoms is the number of elements in the structure.}.
+This model is developed throughout this section,
+restating the relevant findings of
+(\cite{FlSaZi89b}, \cite{FlajoletZC94}, \cite{FlSa95} and \cite{FlajoletSedgewick2009}),
+restricted to the combinatorial structures required to model to Haskell's data types.
+
+It also includes the combinatorial construct of rank $0$, called $\epsilon$.
+Certain systems of combinatorial equations that incorporate $\epsilon$
+result in infinitely many constructs of a fixed rank,
+so are not well-defined with respect to creating enumerations
+and must be avoided for our purposes.
+Systems that avoid this issue, described by the authors as ``epsilon-freeness'',
+are well aligned with the requirement that each rank of structures 
+must include a finite number of instances in order to effectively sample them
+for automated test case generation.
+Demonstrating that nullary constructors (or constants) in a type
+(e.g. the |Nil| construct in a list) should be modelled as an atom of rank $1$,
+instead of a rank $0$ $\epsilon$ was an important outcome of this modelling.
+
+\subsection{Systems of Polynomial Constructions}
+A \emph{class of combinatorial constructions} contains elements that 
+can be partitioned by their size:
+
+\begin{df}[A Combinatorial Class]
+is a set $\set{S}$ where for $x \in \set{S}$ a size function $\phi(x)$ is defined, 
+such that :
+\begin{enumerate}
+\item $\phi(x) \ge 0$ 
+\item $\forall n . \setcard{ \{ x \mid \phi(x)=n \} } \text{ is finite} $.
+\end{enumerate}
+\end{df}
+
+\noindent
+Note that these are the same restrictions as those required for a ranked partition.
+
+The class of polynomial constructions can be 
+defined with a specification language consisting of 
+the primitives $0, 1, + \text{ and } x$.
+This algebra is defined here
+(with $\spec{F}, \spec{G}$ as variables ranging over constructions):
+
+%\begin{df}[Admissible Polynomial Construction Algebra]
+\begin{tabular}[b]{ll}
+Symbol(s) &  Definition  \\
+$\specO$ & the unique empty construction, $ \spec{A} \siso \spec{A} \splus \spec0 \siso \spec0 \splus \spec{A} $\\
+$\specI$ & Neutral, the unique construction on 0 atoms, $ \spec{A} \siso \spec{A} \sprod \specI \siso \specI \sprod \spec{A} $ \\
+$\specX, \specX_{a}$ & Atom \\
+$\spec{F} \splus \spec{G}$ & Disjoint union $(\circ \sprod \spec{F}) \union (\bullet \sprod \spec{G})$ \\
+$\spec{F} \sprod \spec{G}$ & $\{ (f, g) \lvert f \in \spec{F}, g \in \spec{G} \}$ 
+\end{tabular}
+%\end{df}
+
+\noindent
+Note there may be multiple instances of the neutral structure  with different names
+but all of these instances are isomorphic constructions.
+They play a similar role in recursive construction definition 
+as that of nullary data constructors (constants) in Haskell,
+providing a terminal end point without content%
+\footnote{Keep in mind that, despite this similarity of purpose,
+we recommend modeling Haskell nullary constructors
+as atoms over a sort with a single value to give it a size of 1 instead of
+the $0$ size of the neutral element
+to ensure that all constructions have finitely many structures for any given size.}
+
+Atoms are the unique singleton-set construction over an underlying finite sort of elements.
+A multi-sorted construction will have one atom type per sort,
+distinctly labelled (here by convention with a subscript).
+
+Note that n order to guarantee disjointness,
+$+$ labels it's constructions with a distinct symbols
+(shown as  $\circ$ and $\bullet$ in the grammar above) 
+that differentiate what might otherwise be identical elements;
+sums in Haskell are similarly labelled.
+
+The $\spec0$ construction is the isomorphic group of constructions which permit no members.
+For our purposes, this can be considered an error condition, and will not be discussed further.
+
+\subsubsection{Size of Constructions}
+The size of a construction is the number of atoms 
+and is computed as expected:
+
+\begin{df}[Construction Size]
+The size of a construction $h \in \spec{H}$, denoted $\setcard{h}$, is given by
+\begin{align}
+ \setcard{h \in \specI } & = 0 \\
+\setcard{h \in \specX}& = 1 \\
+\setcard{h \in (\spec{F} \splus \spec{G})} & =
+      \begin{cases} \setcard{f} & h = (\circ \sprod f \in \spec{F})\\
+                              \setcard{g} & h = (\bullet \sprod g \in \spec{G}) 
+       \end{cases}\\
+\setcard{(f,g) \in (\spec{F} \sprod \spec{G})} & = \setcard{f} + \setcard{g} 
+\end{align}
+\end{df}
+
+\noindent
+The set of constructions $\specF$ of a fixed size $n$ is denoted $\specn{F}{n}$.
+
+\subsubsection{Structures from Admissible Constructions}
+A \emph{combinatorial structure} is the result of replacing each atom in a construction
+with a particular element of the sort it represents.
+
+\begin{df}[Combinatorial Structure]
+For a single sorted construction $\specF$, 
+the collection of structures that can be created by substituting 
+elements of a set $\setA$ for the atoms of $\specF$ is denoted $\specset{F}{A}$.
+This definition extends to multi-sorted constructions,
+with each atom being replaced by an element of the appropriate sort. 
+\end{df}
+
+Note that in order to have a well defined deterministic substitution operation,
+it is necessary to have a total order over the atoms in the construction
+and order the elements of each sort that are to be substituted.
+The substitution ordering may be accomplished by matching explicit labels or
+implicitly through the order inherent in the substitution operation%
+\footnote{This requirement for ordered substitutions is realized explicitly in 
+the substitution method of the Structure class (Substitution module) of the \GC implementation
+(and Structure2, Structure3 for multi-sorted types).}.
+For admissible polynomial constructions a canonical ordering exists,
+labeling the atoms ``depth-first'' as if the construction were a tree,
+using the inherent left to right order of the operands in the product operator term.
+Although any ordering will suffice, it will be assumed that 
+atoms in a polynomial construction are labelled in this order unless otherwise stated.
+
+\subsubsection{ Composition of Admissible Constructions }
+
+\begin{df}[Composition]
+The composition of admissible constructs $\specG$ into $\specF$ is formally defined as (\cite{FlajoletSedgewick2009}, pg. 87)
+
+$$\specF \scomp \specG = \sum_{k \ge 0} \specn{F}{k} \sprod ( \spec{G}^k ) $$
+where $\specG^k = \specG \sprod \specG \sprod ... \sprod \specG$ is the $k$-fold product.
+\end{df}
+
+\noindent
+The \emph{size} of a $f_k \scomp (g_1, g_2, ..., g_k) \in \specF \scomp \specG$ construct is therefore given by
+
+$$\forall f_k \in \specn{F}{k}.\forall g_i \in \specG.\setcard{f_k \scomp (g_1, g_2, ..., g_k)} = \sum_{i = 1}^{k} \setcard{g_i}$$
+
+where $f_k$ and the $ g_i$ are $\specF, \specG$ structures respectively.
+
+
+\noindent
+The class $\specF \scomp \specG$ can be intuitively interpreted as
+structures where the atoms of a $\specn{F}{k}$ construction are substituted for  
+the $k$ elements of an \emph{ordered} collection of $\specG$ constructions.
+The size of such a structure is given by
+the sum of the sizes of the $\specG$ structures.
+Only the $\specG$ structures have atoms in a composed construction,
+the $\specF$ atoms having been replaced with $\specG$ structures.
+
+An alternate but equivalient definition of composition
+is given by considering the construction to be defined over a finite set of elements $\setA$
+that will be substituted for the atoms in the construction to create a structure.
+
+\begin{df}[Composition via Partitions]\label{def:subbypart}
+Let $\pi$ be a partition of a finite set $\setA$,
+and denote
+For constructions $\specF, \specG$
+composition over a finite set $\setA$ is may also be defined as
+
+$$(\specF \scomp \specG)[\setA] = \sum_{\pi of \setA} \specF[\pi] \sprod \prod_{p \in \pi} \specG[p]$$
+
+where $\specG[p]$ is a $\specG$ structure over the part $p \text{ of } \pi$;
+each $(\specF \scomp \specG)[p]$ structure is of size $\setcard{p}$.
+\end{df}
+
+\noindent
+These two definitions of the construction are equivalent (\cite{FlajoletSedgewick2009}),
+but this latter definition emphasizes that the composition
+is a new class of constructions.
+
+In order for this operation to be well defined under either definition,
+there must be some unique order, or \emph{labeling},
+of the $\specG$ populated atoms in the $\specF$ class such that
+the $i^{th}\ \specG$ structure is consistently assigned to the $i{th}$ atom of $\specF$
+(\cite{FlajoletSedgewick2009}, pg. 87).
+
+\subsubsection{Systems of Polynomial Constructions }
+
+Multiple combinatorial classes can be defined with respect to each other
+by defining a system of construction classes.
+This is the class of combinatorial constructions required for modelling Haskell types,
+including mutually recursive type definitions.
+
+\begin{df}[System of Polynomial Constructions]
+
+A system (or specification) of mutually dependent $r$ combinatorial classes,
+by convention called the \emph{specification} of  $\specF^{(1)}$,
+is a collection of $r$ class specifications
+
+\begin{array}[b]{rcl}
+\specF^{(1)} & = & \Phi_{1}(\specF^{(1)}, ..., \specF^{(r)}) \\
+\specF^{(2)} & = & \Phi_{2}(\specF^{(1)}, ..., \specF^{(r)}) \\
+ & ... & \\
+\specF^{(r)} & = & \Phi_{r}(\specF^{(1)}, ..., \specF^{(r)})
+\end{array}
+
+\noindent
+where each $\Phi_{k}$ is a term built from the $\specF$ classes and the polynomial algebra.
+
+\end{df}
+
+\begin{df}[Polynomial Class]
+A polynomial combinatorial class is the solution to a polynomial system%
+\footnote{This is also known as the class of context-free specifications (\cite{FlajoletSedgewick2009}).}.
+\end{df}
+
+\noindent
+For example, a planar tree with an arbitrary number of ordered branches
+is a polynomial class described by
+
+\begin{align*}
+\spec{PT} & = \specX + (\spec{L} \scomp \spec{PT})\\
+\spec{L} & = \specX \sprod \specL
+\end{align*}
+
+\subsubsection{Triangular Systems}
+Simple systems of constructions do not exhibit any cyclic dependencies in their specification.
+Any such system may be reorganized so that 
+its specification forms a \emph{triangular} system,
+where each class is dependent only on earlier specifications.
+Triangular systems  may be reduced to a single construction,
+and are always well-defined (\cite{FlajoletSedgewick2009}):
+
+\begin{df}[Triangular Systems]
+A system of polynomial construction classes is \emph{triangular}
+if each $\specF^{(k)} (k \ge 2)$ is dependent only on the definitions of $\specF^{(i)}, 1 \le i < (k-1)$
+with $\specF^{(1)}$ being defined strictly in the primitives and operators of the algebra.
+\end{df}
+\noindent
+
+\begin{prop}[Triangular Systems Reduction] \label{prop:iterativeOGF}
+A specification given by an triangular system can be expressed as a single polynomial.
+\end{prop}
+\begin{proof}
+The proof for this follows simply from the substitution of the definitions
+from $\specF^{1}$ into $\specF^{2}$, $\specF^{2}$ into $\specF^{3}$, etc.
+\end{proof}
+
+\begin{corollary}[Triangular Systems are Admissible]
+If $(\specF^{1}, ..., \specF^{n})$ is specified as an triangular system,
+then each $\specF^{i}$ is  \emph{admissible}.
+\end{corollary}
+
+\subsubsection{General Systems}
+Combinatorial classes with cyclic dependencies (such as the planar tree defintion)
+cannot be expressed as a triangular system.
+
+\begin{df}[Recursive System of Polynomial Combinatorial Classes]
+A system of construction classes is \emph{general} if it is not triangular.
+\end{df}
+\noindent
+General systems require more sophisticated mathematics to prove they are admissible:
+this will be demonstrated through the use of generating functions.
+
+\subsection{Ordinary Generating Functions of Constructions}
+
+\begin{df}[OGF of a Combinatorial Construction]
+The ordinary generating function of a construction $\specG$ is a formal power series of the form 
+$$ G(x) = \ogf{g}{n} $$
+where the coefficients ($g_n$) are the number of G structures over a set of $n$ elements
+(this is also called the ``counting sequence'' in \cite{FlajoletSedgewick2009}).
+\end{df}
+\noindent
+If a construction has a well-defined OGF,
+then there are a finite number of constructions for any given size,
+and therefore the system is admissible.
+
+The ordinary generating functions of polynomial constructs can be computed recursively,
+where  $F(x), G(x)$ are the OGFs of constructions $\specF$ and $\specG$
+(see \cite{FlajoletSedgewick2009}  for the proofs).
+
+\begin{tabular}[b]{lll}\label{countseq}
+Symbol(s)& OGF  & Counting Sequence  \\
+$\specO$ & $0$ & $0$ \\
+$\specI$ & $1$ & $A_{0} = 1, A_{n} = 0 \text{ for } n > 0$ \\
+$\specX$ & $x$ & $A_{1} = 1, A_{n} = 0  \text{ for }  n \neq 1$ \\
+$\spec{F} \splus \spec{G}$ & $ (F + G)(x) = \displaystyle{\ogf{(a+b)}{n}}$ &  $(F + G)_{n} = F_{n} + G_{n} $ \\
+$\spec{F} \sprod \spec{G}$ & 
+                   $F(x) \sprod G(x) = \displaystyle{\sum_{n=0}^{\infty} (\sum_{k=0}^{n} a_k b_{n-k}) x^n}$ &  
+                   $ (F \sprod G)_{n} = \sum\limits_{k=0}^{n} F_{k} G_{n-k} $ \\
+$\spec{F} \scomp \spec{G}$  & $(F \scomp G)(x) = F(G(x))$ & $(F \scomp G)_n = (F_{n}) ( G(x)^n )$
+\end{tabular}
+
+\noindent 
+Note that for the composition to be well defined,
+either the construction is triangular, so the generating function has finitely many terms,
+or $\specn{G}{0} = 0$,
+because the composition of formal power series 
+is only defined where $G(0) = 0$ 
+(\cite{WilfGeneratingFunctionology}, \cite{FlajoletSedgewick2009} appendix A.5, pg 731).
+
+\subsubsection{Simple Substitution}
+
+One important special case of composition
+is the substitution of values from a base set for the atoms of a construction.
+This kind of substitution can be modeled using a singleton set as an intermediating structure, i.e..
+
+\begin{equation}
+(\specF \scomp \specX) [\setA]  =  \sum_{k \ge 0} \specn{F}{k} \sprod (\specX [\setA])^k
+\end{equation}
+
+The OGF of the substitution will depend on
+whether the same value can be substituted multiple times into the new construct,
+and if there are other restrictions on the selection process.
+The number of structures of a size $k$ populated from a set of cardinality $n$ will be 
+the number of constructions of size $k$ multiplied by 
+the number of subsets of size $k$ of the underlying set allowed for the substitution.
+The number of subsets of a set is a standard problem in combinatorics.
+If repetition is allowed, the OGF for the substitution of $k$ values from 
+a type with cardinality $n$ is 
+
+$$ \setcard{(\specF \scomp \specX)_{k}[\setA]} = F_k (\setcard{\setA})^k $$
+
+However, if each element from the type can be drawn only once for each substitution,
+ie. without repetition, the ogf is
+
+\begin{equation}
+F_n[A](x) = \sum_{k \ge 0} f_{k} \binom{n}{k}
+\end{equation}
+
+The number of populated structures of a given size
+is important for property based testing
+as it represents the size of the population to be sampled for the test.
+
+\subsubsection{Existence of OGF for Admissible Polynomial Classes}
+Any system with an OGF that can be computed from the specification
+has a finite number of constructions for each size of structure,
+and therefore is admissible (well-defined).
+
+\begin{df}[Admissible Constructions]
+
+Let $\spec{A} = \Phi( \spec{B}^1, \spec{B}^2, ..., \spec{B}^m )$ be a specification over admissible constructions,
+then the $m-ary$ construction $\Phi$ is \emph{admissible} if the ordinary generating function of \spec{A}
+is only dependent on the OGFs of $\spec{B}^i, 1 \le i \le m$.
+
+\end{df}
+\noindent
+
+\begin{theorem}[OGF of Admissible Polynomial Constructible Class]\label{OGFPolynomialClass}
+The ordinary generating function of an admissible polynomial specification $\specA$ is an \emph{algebraic function}, 
+i.e. there exists a bivariate polynomial such that
+
+$$P(x, y) \in \field{C}[x,y] . P(x, F(x)) = 0$$
+
+and that this can be solved using algebraic elimination to produce 
+a polynomial equation $F(X)$ for its generating function.
+
+\end{theorem}
+\begin{proof}
+\cite{FlajoletSedgewick2009} (proposition 1.17, pg.80)%
+\footnote{They actually provide the proposition over a wider class of combinatorial constructions,
+but the theorem and proof are not dependent on the availability of these other operators.}.
+\end{proof}
+
+\noindent
+It should be noted that in \cite{FlajoletSedgewick2009} 
+it is unclear that only well defined structures
+should be included in this class,
+but that this is clearly required in the earlier work \cite{FlSaZi91}.
+

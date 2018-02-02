@@ -1,0 +1,132 @@
+%\section{Haskell Types}
+
+This section is a brief overview of the Haskell types%
+\footnote{It is assumed that the reader is familiar with the Haskell type system,
+or will turn to \cite{Haskell2010} or other Haskell references as required.} 
+that can be generated in the \GC framework
+and the other \pbt systems discussed in Chapter \ref{pbtsystems}.
+These represent a broad range of commonly used Haskell types,
+but certain categories of types have been excluded from this work,
+and in particular it does not address any extensions to the Haskell type system
+that are not part of the core language definition.
+
+Haskell types consist of a small number of built-in \emph{base types} (e.g. Char, Int),
+functions,  and algebraic types.
+Type constructors for lists and tuples are included in the language definition.
+Standard algebraic data types are provided through the Haskell Prelude and library modules,
+but new algebraic data types may be defined in a module,
+including recursive and mutually recursive types.
+
+
+\subsection{Type Constructors}
+Recall that algebraic data types in Haskell are defined as (\cite{Haskell2010}):
+
+\begin{align*}
+\text{data} T\ a_1\ ...\ a_n =\ & C_1\ t_{1,1}\ ...\ t_{1,n_1}\ \\
+  \vert\ & C_2\ t_{2,1}\ ...\ t_{2,n_2}\  \\
+  \vert\ & ...\ \\
+  \vert\ & C_k\ t_{k,1}\ ...\ t_{k,n_k}
+\end{align*}
+\noindent
+where 
+\begin{itemize}
+\item $a_i$ are defined types or type (valued) variables,
+\item $t_{i,j}$ are either defined type constants or one of the $a_i$ arguments to the type constructor,
+\item each $C_j$ is a \emph{data constructor},
+\item and $ \vert $ represents the (disjoint) union of the constructors.
+\end{itemize}
+\noindent
+Data constructors are reified as functions
+
+\begin{equation*}
+C_j :: \ t_{j,1} \ra ...\ \ra\ t_{j,n} \maps T\ a_1\ ...\ a_n
+\end{equation*}
+
+\noindent
+The results of each data constructor can be considered a labelled product of its arguments,
+and $C_j$ must be a unique label within the module.
+
+\noindent
+There are two other ways that new types can be defined:
+\begin{description}
+\item[type synonym] provides a new name for an existing type,
+but is purely syntactic and is interchangeable%
+\footnote{with minor exceptions that are not significant to generation} with it;
+\item [newtype] creates a new type by labelling instances of an existing type
+using a single data constructor,
+meaning the new values are distinguishable from the originals.
+\end{description}
+\noindent
+In both cases, there is a one to one correspondence between the values of the original and new type.
+For test case generation,
+|newtype| constructors can be considered equivalent to
+a new algebraic data type constructor with a single data constructor,
+and type synonyms can be ignored as a syntactic convenience.
+
+\subsubsection{Built-in Type Constructors}
+Haskell provides built-in type constructors for lists and n-tuples.
+Lists and tuples could be generated using
+their algebraic equivalents,
+but it is more convenient to treat them as special cases.
+
+\subsubsection{Functions}
+While it is possible to generate a limited class of functions,
+they have a fundamentally different semantic interpretation
+which poses special challenges for test case generation
+and are out of the scope of this thesis.
+\gordon{is this sufficient?}
+
+\subsection{Polymorphism}
+
+An Haskell type is polymorphic if
+it represents a type constructor ranging over one or more type variables.
+Modules may (and usually do) contain expressions and functions that have a polymorphic type,
+and even be compiled in this state,
+but these must subsequently be refined to grounded types before execution.
+
+Properties, as a kind of Haskell function, 
+can be defined over polymorphic types.
+For example, typically the involution property for a list reverse function
+would be defined over lists with an arbitrary element type.
+The test cases generated for this property, however,
+must each have a concrete element type
+(and this choice must satisfy the class constraints).
+The selection of which types to test is 
+is part of defining the \emph{sampling frame} (section \ref{sec:sampling_theory}),
+and the impact of restricting the test to these types
+must be addressed as a supporting hypotheses
+of the test context (section \ref{sub:context}).
+
+\subsection{Other types}\label{nonregrecurs}
+One of the important assumptions made to this point 
+about the algebraic data types being generated
+is that every value has a finite representation.
+It is possible in Haskell to define and use types with 
+no finite representation,
+the simplest example of which is the stream:
+\begin{lstlisting}
+data Stream a = Stream a (Stream a)
+\end{lstlisting}
+\noindent
+It is not possible to instantiate such a structure using proper values,
+but Haskell's lazy evaluation makes it possible to use these types.
+These kinds of coalgebraic data types are beyond the scope of this thesis.
+
+Another assumption that has been made to this point is that
+recursively defined structures are \emph{regularly} recursive,
+meaning that the recursion occurs over the type itself.
+Nested, or non-uniform recursive data type is a parameterized type that
+includes a recursive reference to the type but with modified or different type arguments.
+For example, a nested pairing type defines the type of arbitrarily deep pairings:
+
+\begin{lstlisting}
+
+data NestedP a = Node a | Nest (NestedP (a, a))
+
+\end{lstlisting}
+
+While we anticipate it is possible to handle these, we leave them to future work.
+The interested reader may consult
+\cite{BlampiedThesis} and \cite{Joha07}.
+
+

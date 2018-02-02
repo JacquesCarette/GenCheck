@@ -1,0 +1,140 @@
+\newcommand{\AJ}{Andr\'{e} Joyal}
+% spec marks the argument as a species, and some common species get their own commands
+\newcommand{\spec}[1]{\ensuremath{\mathcal{#1}}}
+% specn is for species over fixed size sets, e.g. \specn{E;2} is a set (bag) of two elements.
+\newcommand{\specn}[2]{\ensuremath{\spec{#1}_{#2}}}
+\newcommand{\specnum}[1]{\ensuremath{\mathbf{#1}}}
+
+\newcommand{\specO}{\specnum{0}}   % using O for 0, the non-existent structure
+\newcommand{\specI}{\specnum{1}}  % using I for 1, the structure over the empty set
+\newcommand{\specX}{\ensuremath{\mathcal{X}}}  % singletons
+\newcommand{\specE}{\ensuremath{\mathcal{E}}}  % set (bag)
+\newcommand{\specC}{\spec{C}}  % cycle
+\newcommand{\specL}{\spec{L}}  % list
+\newcommand{\specA}{\spec{A}}  % trees - arbres
+\newcommand{\specF}{\spec{F}}  % generic species labelled F
+\newcommand{\specG}{\spec{G}}  % generic species labelled G
+\newcommand{\specZ}{\spec{Z}}  % singleton, but in Flajolet et al syntax
+
+\newcommand{\field}[1]{\ensuremath{\mathbb{#1}}}
+\newcommand{\nat}{\field{N}}
+\newcommand{\integer}{\field{Z}}
+\newcommand{\boolean}{\field{B}}
+\newcommand{\True}{T}
+\newcommand{\False}{F}
+\newcommand{\reals}{\field{R}}
+\newcommand{\absval}[1]{\ensuremath{\lvert#1\rvert}}
+
+% sfrak gives a species with a different font
+\newcommand{\specroot}[1]{\ensuremath{\mathfrak{#1}}}
+\newcommand{\specfrak}[1]{\ensuremath{\mathfrak{#1}}}
+\newcommand{\specname}[1]{\ensuremath{\mathit{#1}}}    % names longer than one letter
+
+\newcommand{\specwgt}[2]{\ensuremath{\mathcal{#1}_{\field{#2}}}}
+
+% sets of elements have no structure, the species is applied over a set 
+\newcommand{\set}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\setA}{\set{A}}
+\newcommand{\setcard}[1]{\ensuremath{\lvert#1\rvert}}
+\newcommand{\setcardn}[2]{\ensuremath{\lvert#1\rvert}_{#2}}
+\newcommand{\specset}[2]{\ensuremath{\spec{#1}[\set{#2}]}}
+\newcommand{\specsetpar}[2]{\ensuremath{(\spec{#1})[\set{#2}]}}
+\newcommand{\specnset}[3]{\ensuremath{\spec{#1}_{#2}[\set{#3}]}}
+\newcommand{\specfrakset}[2]{\ensuremath{\mathfrak{#1}[\set{#2}]}}
+\newcommand{\sunion}[2]{\ensuremath{\bigcup_{#1}^{#2}}}
+
+% Species operators
+\newcommand{\splus}{\ensuremath{+}}           % disjoint union
+\newcommand{\sprod}{\ensuremath{\cdot}}       % product
+\newcommand{\scomp}{\ensuremath{\circ}}       % composition (substitution)
+\newcommand{\sdiff}{'}      % differentiation
+\newcommand{\spt}{\ensuremath{^{\bullet}}}    % pointing
+\newcommand{\scart}{\ensuremath{\times}}      % Cartesian product
+\newcommand{\sfunccomp}{\ensuremath{\Box}}
+\newcommand{\speccard}[2]{\ensuremath{\lvert#1[\set{#2}]\rvert}}
+\newcommand{\specring}{\ensuremath{\mathfrak{Spe}}}
+\newcommand{\virtring}{\ensuremath{\mathfrak{Virt}}}
+
+%L species operators
+\newcommand{\sprodL}{\ensuremath{\sprod_{O}}}
+\newcommand{\sinteg}{\ensuremath{\int}}
+
+% Species equivalence operators
+\newcommand{\sequiv}{\ensuremath{=}}		% equivalence
+\newcommand{\sequip}{\ensuremath{\equiv}}    % equipotence  
+\newcommand{\siso}{\ensuremath{\simeq}}	% isomorphic
+
+%Species transformations or meta operators
+%\newcommand{\toset}{\ensuremath{\mu}}  % forgetful functor, maps F to E for all F, \mu is arbitrary decision
+
+%Generating series
+\newcommand{\specgs}[1]{\spec{#1}(x)}   % formal power series
+\newcommand{\factorial}{\!}
+\newcommand{\coeff}[2]{\ensuremath{\[ {#1}^{#2} \]}}  % coefficient  of formal power series
+
+\newcommand{\semiring}[2]{#1\llbracket #2 \rrbracket}
+
+%Categories
+\newcommand{\categoryfnt}[1]{\ensuremath{\mathbb{#1}}}
+\newcommand{\catname}[1]{\categoryfnt{#1}}
+\newcommand{\categorywrd}[1]{\ensuremath{\mathfrak{#1}}}
+\newcommand{\catB}{\categoryfnt{B}}
+\newcommand{\catE}{\categoryfnt{E}}
+\newcommand{\catL}{\categoryfnt{L}}
+\newcommand{\ordset}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\lspecset}[2]{\specset{#1}{#2}}
+\newcommand{\symgroup}{\ensuremath{\mathfrak{G}}}
+\newcommand{\speccat}{\catE^{\catB}}
+\DeclareMathOperator{\catid}{\mathit{id}}
+\DeclareMathOperator{\join}{\nabla}
+\DeclareMathOperator{\meet}{\triangle}
+\newcommand{\banana}[1]{\ensuremath{\llparenthesis #1 \rrparenthesis}}
+
+% Logic terms
+%\newcommand{\implies}{\Rightarrow}	% implication
+
+% Functional programming terms
+\newcommand{\algspec}[1]{\ensuremath{\mathfrak{#1}}}
+
+\DeclareMathOperator{\map}{map}
+\DeclareMathOperator{\fold}{fold}
+\DeclareMathOperator{\unfold}{unfold}
+\DeclareMathOperator{\build}{build}
+\DeclareMathOperator{\hylo}{hylo}
+\DeclareMathOperator{\foldl}{foldl}
+\DeclareMathOperator{\foldr}{foldr}
+\DeclareMathOperator{\add}{add}
+\DeclareMathOperator{\remove}{remove}
+\DeclareMathOperator{\boldheart}{\pmb{\heartsuit}}
+
+\newcommand{\ra}{\ensuremath{\rightarrow}}
+\newcommand{\maps}{\ra}
+\newcommand{\la}{\ensuremath{\leftarrow}}
+\newcommand{\kind}{\ensuremath{\star}}
+\newcommand{\mkfunc}[2]{#1-\texttt{\textgreater}#2}
+\newcommand{\textfunc}{\texttt{TC}}
+\newcommand{\unafunc}{\mkfunc{\textfunc}{\textfunc}}
+\newcommand{\binfunc}{\mkfunc{\unafunc}{\textfunc}}
+\newcommand{\typerep}[1]{\ensuremath{\text{#1}^{\scomp}}}
+\newcommand{\discrim}{\ensuremath{\bigtriangledown}}
+\newtheorem{combeq}{Combinatorial Equation}
+
+
+%\newenvironment{comment}
+%{\textbf{Comments: }\ \begin{slshape}}
+%{\end{slshape}}
+\newcommand{\rebelheart}{\ensuremath{\sideset{_{\swarrow}}{^{\swarrow}}{\boldheart}}}
+
+
+% Generic programming brackets
+\newcommand{\leftb}{\{\!|}
+\newcommand{\rightb}{|\!\}}
+\newcommand{\genfunc}[2]{#1\leftb#2\rightb}
+\newcommand{\encode}[1]{\genfunc{\mathit{encode}}{#1}}
+\newcommand{\gfold}[1]{\genfunc{\mathit{fold}}{#1}}
+\newcommand{\concat}{\ensuremath{+\!\!\!+}}
+\newcommand{\funcin}[1]{\ensuremath{\text{IN}_{#1}}}
+
+% Miscellaneous
+\newcommand{\Joyal}{Andr\'{e} Joyal}
+\newcommand{\combdex}[1]{\ensuremath{\mathbb{I}_{#1}}}

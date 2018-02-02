@@ -1,0 +1,248 @@
+%\section{Complexity Ranked Generators}
+
+In the last example,
+there were only finitely many values for the generated types,
+allowing generators to apply a sampling method to the entire population of values.
+Where there are infinitely many values, however,
+it is not possible to ``fairly'' sample the entire population,
+so the range of any given generator must be restricted to a finite subset of the values.
+One approach is to establish a partition of the type's values
+consisting of an infinite but countable number of finite parts,
+and define an indexed family of generators that sample each part independently.
+The test program may then use as many generators as desired
+to support a \emph{stratified sampling strategy},
+as discussed in section \ref{sec:sampling_theory}.
+
+\QC originally provided such a solution by
+capping the ``size'' of the values to be generated on each call.
+Small test cases were generated and evaluated first,
+followed by larger values (a heuristic based on the small scope hypothesis).
+This required a family of generators parameterized by the size of the structures they produced,
+each of which was dependent on generators of smaller structures,
+a solution also adopted by the other \pbt systems discussed earlier
+(Chapter \ref{pbtsystems}).
+
+\GC addresses this problem by using a class of complexity \emph{ranked} generators,
+indexed by a positive integer rank,
+each of which samples a finite part of the type's values.
+This section presents the definition of \GC ranked generators and
+the use of \emph{complexity measures} as the basis for this ranking.
+It also identifies the size ranking used in the other reviewed \pbt systems
+as forms of complexity ranking,
+and compares the complexity \emph{measures} each uses.
+
+\subsection{Ranked Generators}
+A \emph{ranked} generator is an indexed generator $g_r : \nat \ra T$
+that partitions T into finite subsets.
+
+\begin{df}[Ranked Generator]\label{def:rankedgen}
+A ranked generator for a type $T$,
+with a rank function $\text{rank} : T \ra \nat$  inducing a partition $T_1, T_2, ...$
+is a parameterized generator
+$$G : \nat \ra [ T ] $$
+such that
+$$G(k) = [T_k]$$
+
+\end{df}
+
+\noindent
+The goal is to use this partition for stratified sampling (section \ref{sec:sampling_theory}).
+Ideally, the rank function would have the following properties:
+
+\begin{enumerate}
+\item groups values which are considered alike in some way, 
+with respect to the evaluation of the property;
+\item justifies setting a maximal rank to limit testing to a finite part of the property's domain;
+\item reflect the \emph{priority} of the values for testing,
+with lower ranks being higher priority test cases,
+although this may be a subjective measure.
+\end{enumerate}
+\noindent
+For example,
+one rank function for Haskell's arbitrarily large integer type (|Integer|)
+might partition the values by magnitude and sign:
+
+\begin{equation*}
+\text{rank}(n) = \frac{2\ log_2 \absval{n}}{ k } + \begin{cases} 1 & \text{k positive} \\ 0 & \text{otherwise}\end{cases}
+\end{equation*}
+\noindent
+resulting in the partition $\{\ [0..(2^{k} - 1)], [-(2^{k} - 1)..-1], [2^{k} .. (2^{2k} - 1)], \ldots\ \}$.
+
+\subsection{Complexity Ranked Generators}
+In order to use uniformity, regularity or small scope hypotheses in a test context,
+the partition of the type values must be based on the \emph{complexity} of the underlying terms.
+A computable measure of term complexity is therefor required,
+such as that provided in  (\cite{BernotGaudelMarre1991}) .
+
+\begin{df}[Complexity Measure]
+A  complexity measure c must satisfy the following conditions:
+
+\begin{enumerate}
+\item must be a non-negative integer;
+\item must be strictly monotonic with respect to term inclusion, i.e.
+$$ c(\ C\ t_1\ t_2\ ...\ t_n\ ) > max( c(t_1), ..., c(t_n) ) $$ 
+where $C$ is a type constructor;
+\end{enumerate}
+
+\end{df}
+
+\noindent
+Three distinct complexity measures for algebraic data types
+that are used in the \pbt systems described in this thesis:
+
+\begin{description}
+\item[maximal depth:]
+the maximum number of constructors in a branch required to reach any leaf value;
+\item [total number of constructors:] the number of data constructors included in the term, including nullary constructors;
+\item [combinatorial size:] the number of terminals,
+i.e. the number of base type and nullary constructors in the term.
+\end{description}
+
+\noindent
+Note that these do not form a comprehensive list of possible measures,
+but we restrict our attention to these three.
+
+The computation of term complexity is given below (where $c$ is the complexity function):
+
+\begin{tabular}{ l c c c l}
+complexity measure & base type & constant & $C t_1 \dots t_n$ & Used By\\
+max. depth & $0$ & $0$ & $1 + max ( c(t_1), \dotsc, c(t_n) )$ & QC, SC, EC, GAST\\
+total constructors & $0$ & $1$ & $1 + \sum_{i=1}^{n} c(t_i)$ & FEAT\\
+combinatorial size & $1$ & $1$ & $\sum_{i=1}^{n} c(t_i)$ & GC
+\end{tabular}
+
+\noindent
+Complexity measures can be defined on products over any component types
+that the measure is defined for,
+so supports recursive and mutually recursive types.
+Note that disjoint unions do not play a role in term complexity as these measures
+are defined on the terms, not types.
+
+Maximal depth and total constructors both count constructors to determine the complexity of the term,
+which is a natural approach in a functional programming environment.
+Conceptually the combinatorial size complexity measure is quite different,
+being based on a count of the number of values
+that must be substituted into a term's ``shape''
+in order to produce a populated data structure.
+The ``weight'' of the structure is in the base types and nullar constants that make up the terminals,
+as opposed to the constructors that contain them.
+For simple structures,
+this provides similar rankings to the total constructors approach,
+but for more complex data types this is not the case,
+as will be discussed in \ref{sub:cmprcomplex}.
+
+\subsection{Generating Regular Types}\label{sub:gensubst}
+The challenge of generating infinitely valued types can now be 
+decomposed into a countable sequence of complexity ranked generators,
+each generating products of a fixed rank from a finite population of terms.
+A ranked generator that uses a complexity measure as its ranking function 
+will be called a complexity ranked generator.
+
+Complexity ranked generators can be defined compositionally
+by following the structure of the type definition,
+i.e. using \emph{generic programming} techniques
+(\cite{Bird99}, \cite{Gib-dgp06}, \cite{LPJ03}, \cite{ComparingGP})
+The population of a constructed product term $C a_1 a_2 ... a_k $ of a given complexity $n$
+may be determined by inverting the measure to proscribe the complexity of the term's components
+(where $c$ is the complexity function):
+
+\begin{tabular}{l l}
+complexity measure & component complexity\\
+max. depth & $ \forall i . c (a_i) \le n - 1  \land \exists j . c (a_j) = n - 1$\\
+total constructors &  $1 + \sum c (a_i) = n$ \\
+combinatorial size &  $\sum c (a_i) = n$ 
+\end{tabular}
+
+\noindent
+If the type being generated is the disjoint union of multiple data constructors,
+the population of terms of rank $n$ is the union of the terms of that rank for each constructor.
+
+Higher ranked generators can then be defined using lower ranked generators,
+terminating with base type and constant generators.
+For example, \SC uses the total constructors measure and
+generates terms $T\ a_1\ a_2\ ...\ a_n$ of complexity $r$ by
+combining all possible terms $a_1, \dots, a_n$ such that the sum of their ranks is $r-1$.
+\QC uses maximal recursive depth as its complexity measure,
+with higher ranked generators using components from lower ranked generators,
+although it is slightly different in that the rank is the upper bound of term complexity instead of a fixed value.
+This approach is well suited to the construction of exhaustive and random sampling generators,
+but these are the only two sampling methods that can be constructed in this way.
+More complicated sampling strategies such as boundary sampling and uniform interval sampling
+cannot be arbitrarily decomposed over products,
+and so cannot be implemented by calls to lower ranked generators.
+
+The alternative is to use the complexity measure to define the \emph{population} of the terms of a given rank,
+and then apply the sampling method to that population.
+The definition of these populations,
+and the application of the sampling methods,
+can also be defined compositionally following the definition of the type,
+and are therefore also subject to generic programming methodolgies.
+\GC and \FEAT use this approach,
+compositionally defining \emph{enumerations} of the terms of a given complexity,
+and then sampling those terms;
+we refer to these as \emph{enumerative generators}
+(chapter \ref{chp:enumgen}).
+
+\subsection{Comparing Complexity Measures}\label{sub:cmprcomplex}
+
+Each of the complexity measures satisfy the rank criteria (definition \ref{def:rankedgen}),
+but how well does the measure reflect the complexity with respect to its use as a test case?
+The objective of ranking the test cases is to partition the values
+according to the complexity of evaluating the tested property over them,
+and to support test strategies based on the uniformity and regularity hypotheses.
+The complexity measures can be evaluated against these objectives
+to provide a partial assessment of their value in \pbt.
+
+Maximal depth, while an intuitive approach that is easy to implement in a Haskell generator function, 
+assumes that the complexity of evaluating the property at a value is 
+determined by its most complex branch,
+ignoring the other parts of the term.
+This seems to be contrary to the uniformity hypothesis,
+which requires that the terms of a like ranking be of similar complexity with respect to the property being tested.
+
+The total constructors measure assumes that complexity is proportional to the number of constructors in the term,
+while the combinatorial size measure associates complexity with the number of terminal nodes in the structure,
+Both of these seem to be well suited for a uniformity hypothesis,
+and in fact are nearly identical for simple type definitions.
+There is a difference for more complicated structures, however,
+especially when the type consists of multiple recursive components.
+For example, consider a general tree with an arbitrary number of branches and external leaves.
+
+\begin{lstlisting}
+data List a  = Null | Cons a (List a)
+
+data GenTree a  = Leaf (a) | Brs (List (GenTree a))
+\end{lstlisting}
+
+For the combinatorial measure,
+the complexity would be the number of leaves, 
+regardless of how the branches were represented.
+The ranking of other two complexity measures, howerver,
+would be strongly influenced by the representation of the branches within the list,
+and would provide different ranks depending on how the leaves were distributed in the branches,
+introducing a distinct ``left bias'' to the tree structures of like rank.
+The terms of similar combinatorial complexity would be those
+that were alike in terms of the abstract general tree,
+and therefore provides superior uniformity with respect to the property specification.
+The total constructors and maximal depth generators would
+produce like ranked terms with respect to the complexity of the concrete representation of the tree,
+and providing superior uniformity with respect to the implementation of the type.
+For more complex heterogeneous structures of this nature,
+the choice of complexity measure will have a significant impact on the nature of the test suite,
+but a valid argument can be made for either choice in this case.
+
+The significance of the choice of complexity measure for generated test cases is not yet well understood.
+\cite{Duregard2012} provides some empirical evidence of improved error identification
+using a total constructor complexity metric (through their enumerative generators),
+but each of the \pbt systems described in chapter \ref{pbtsystems}
+also provide supporting arguments and emperical evidence for their generator strategies.
+The best approach has clearly not been determined, 
+and there may not be a single ``best choice'' for complexity measure.
+It is clear that more research is required in this area,
+and \GC provides a platform to explore this issue by allowing
+generators to be defined with different ranking functions.
+
+
+
+
+

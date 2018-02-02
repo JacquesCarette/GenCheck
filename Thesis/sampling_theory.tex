@@ -1,0 +1,274 @@
+%\section{Sampling Theory}
+
+If a software test is a kind of experiment,
+then \emph{sampling theory},
+the study of establishing selection criteria
+in scientific and engineering experiments,
+may be of use in establishing test selection criteria.
+This section provides a brief summary of sampling theory
+based on an introduction for non-statisticians provided by \cite{Stuart1968};
+additional references are made to the more technical \cite{Cochran1977} as needed.
+Although the statistical theory supporting these methods may not always apply,
+it provides valuable guidance in understanding
+the implications of using \emph{sampling methods}
+to select software test cases.
+
+In statistical theory, 
+an experiment that estimates the
+proportion of a population that
+exhibits a certain value or range of values for a characteristic
+is called a \emph{proportion} test (\cite{Stuart1968}).
+A property based software test
+estimates the proportion of the property's domain
+that would evaluate to false, 
+i.e. the proportion of inputs that would result in an error.
+In general, the expected proportion of erroneous inputs should be $0$,
+but more sophisticated and complex software development strategies
+may have a higher tolerance for error.
+
+Statisticians have developed sophisticated estimates of
+accuracy, bias and variance of the test results
+based on the sampling methods used for an experiment.
+Unfortunately the assumptions required to provide these estimates
+do not really apply to software tests.
+In particular, it is difficult to imagine a situation in which
+software errors were independently distributed throughout the input cases
+and not correlated amongst similar test cases,
+or even have any predictable prior probability distribution that can be assessed.
+While this reduces the confidence that can be acheived using statistical sampling techniques,
+they are still a useful starting point for defining and evaluating test selection criteria in software testing.
+
+\subsection{Populations and Sampling Frames}
+
+The \emph{population} of an experiment is
+the collection of all possible conditions, individuals or elements
+to which the hypothesis can be applied.
+The population of a software test is in part defined by
+all combinations of inputs and system states allowed by the specification.
+In general, however, the sample will be drawn from
+a subset of the population based on fixing certain factors in the test.
+Where it is undesirable, or impossible, to select values from the entire population,
+test cases may be drawn from a subset called the \emph{sampling frame} of the experiment.
+For example,
+a chemical reaction might be observed over a variety of temperatures,
+but with the humidity held constant as it is not expected to impact the results.
+In this case, 
+the \emph{sampling frame} of the experiment 
+is the range of temperatures and the fixed value of the humidity (as well as any other factors).
+\begin{df}[Sampling Frame]
+The sampling frame is the subset of the population
+that will be considered by the test selection criterion (\cite{Stuart1968}).
+\end{df}
+
+In a software test,
+the sampling frame is a combination of the external ``real'' factors that will be fixed for the duration of the test
+(e.g. the test system) and the subset of the possible inputs that will be considered as possible test cases.
+This will include limits on test case size and composition,
+but any and all factors that might cause or be correlated with errors
+must be considered in defining this population,
+not just the values of the input and state variables.
+The hardware platform, operating system versions and configurations,
+compiler versions, other uses of the test system,
+may all impact the results of a test.
+These factors may be fixed, 
+or may be varied by performing the test on different systems,
+but they must be considered as forming distinct dimensions in the property domain
+and the restriction to a single test system as part of the sampling frame.
+
+For the sake of clarity (the word test is very fungible in the English language)
+a single evaluation of a test program,
+on a particular test environment and with a defined sampling frame,
+will be called a \emph{test run} or \emph{test pass}:
+
+\begin{df}[Test Run (Test Pass)]
+The evaluation of a given test oracle over a test set,
+drawn from a single sampling frame,
+against a single installed instance of the software to be tested.
+\end{df}
+
+\noindent
+The final verdict of the test is then
+based on the results from each of the test passes,
+much as a scientific study with multiple independent experiments,
+to achieve sufficient diversity in those factors to establish
+confidence in the results.
+
+The remainder of this section describes various sampling methodologies
+that can be applied to a sampling frame to generate test cases for an experiment,
+but will not discuss the ``real world'' factors further.
+
+\subsection{Random Sampling}
+The most basic approach to establishing an unbiased sample is \emph{random} sampling,
+where each element in the sampling frame is assigned a known, 
+non-zero probability for selection.
+Elements are selected ``at random'' based on its assigned \emph{probability},
+the ratio of its selection weight to the accumulated weight of the population.
+
+One of the important advantages of random sampling is that 
+it prevents \emph{selection} bias, 
+and in particular provides a good way of sampling unknown confounding factors.
+It allows for uneven weighting
+given to each element in the frame,
+but the weighting must be known and objectively assigned.
+A disadvantage of random sampling is that it  either allows duplicate test values (sampling with replacement),
+which must then be evaluated or detected and removed,
+or requires a more expensive algorithm for avoiding duplicates (sampling without replacement).
+
+Establishing and maintaining known weightings for the random selection process 
+can be very challenging in some contexts,
+especially when sampling without replacement.
+A \emph{pseudo-random} sampling method allows
+the relative weights of selecting the individual elements 
+to be unknown or change over the course of the sampling process.
+Pseudo-random sampling methods may exhibit a \emph{systemic bias},
+where a subset of elements will have a very small or no probability of being selected,
+reducing the value of tests based on these samples%
+\footnote{Note that this use of the term ``pseudo-random'' is distinct from
+acknowledging the fundamentally deterministic nature of 
+software based random generators.}.
+
+\subsection{Systematic Sampling}
+A sample is selected \emph{systematically} by
+establishing some sort of structure or order over the population such that 
+close elements are similar in some way, 
+and distant elements are dissimilar.
+
+There are different methods of sampling from such a structure, such as:
+
+\begin{description}
+\item[exhaustive] the entire domain is included in the test;
+\item[uniform] pick values at uniform intervals over the index or structure;
+\item[near-uniform] similar to uniform sampling, 
+but randomizing the interval between selected elements to avoid systemic bias%
+\footnote{This might be considered a pseudo-random sampling method,
+but would only be a true random sampling strategy if 
+all elements had a known non-zero probability of selection.};
+\item[boundary] select some or all of 
+the values near the boundaries of the structure or index
+(may also be called extreme).
+\end{description}
+
+\noindent
+Non-exhaustive systematic sampling may introduce an exclusion bias,
+because certain values may have no possibility of being included in the sample.
+For example, consider the specification $\forall n \in [1 .. 100]\ .\ f(n) = n$ 
+and implementation |f n = (n `div' 2) * 2|;
+if the sample is selected by uniformly taking every second element,
+i.e. |[2,4,...,100]|, the test will fail to identify problems which will occur for odd integers.
+
+Systematic sampling avoids the duplication inherent in random sampling,
+which is particularly important when the sample size is large with respect to the domain.
+Uniform and near-uniform sampling methods also guarantee a \emph{diversity}
+of values from a sample, something not guaranteed from random sampling.
+Systematic sampling techniques often embody valuable heuristics
+based on engineering experience,
+such as the recognition that boundaries and extreme values are 
+more likely to expose errors.
+
+\subsection{Stratified Sampling}
+
+\emph{Stratified} sampling involves \emph{partitioning} the sampling frame such that 
+test cases of the same stratum are expected to behave in a similar way.
+Representatives are selected from each of the strata independently,
+using either a random or systematic sampling methods.
+The strata can, but need not be, represented equally in the sample,
+although the weight given to each value in a given stratum should be roughly equal.
+The ratio of the number of elements drawn from a stratum
+to the total size of the sample is called its \emph{sampling fraction};
+the distribution of the sample across the strata is called the \emph{sampling allocation}.
+The choice of sampling allocation is part of the stratified sampling method;
+\cite{Podgurski1999} suggests \emph{proportional allocation} is the best approach,
+but other approaches include setting the sampling fractions
+according to the perceived level of risk or heterogeneity in the strata.
+
+The value of independently sampling the stratum
+is dependent on the similarity of the elements of each stratum,
+and the distinctiveness between the different strata.
+Stratified sampling allows different parts of the population (sampling frame)
+to have different sampling fractions and sampling methods.
+As an example, 
+\cite{Podgurski1999} presents the results of applying
+stratified random sampling in the allocation of test cases
+during an interactive beta test,
+with the stratifying based on traces of the implementation.
+Stratification generally improves the quality of the test,
+according to \cite{Stuart1968} (pg 51):
+
+\begin{quote}
+ Stratification with uniform sampling fraction
+ \footnote{taking equal numbers of elements from each stratum}
+ almost always increases precision.
+ \end{quote}
+ 
+ \noindent 
+The general impact of stratification on statistical estimators 
+can be seen in \cite{Cochran1977}.
+
+\subsubsection{Other Sampling Methods}
+
+Any selection criterion may be described as a sampling method.
+Several alternative sampling methods (\cite{Cochran1977}, pg. 10) are :
+
+\begin{description}
+\item[purposive] the expertise of the practitioners suggests 
+the choice of test cases to form a representative sample;
+\item[opportunistic] sample consists of existing observations,
+as opposed to those performed as part of an experiment;
+\item[haphazard] in the absence of any established selection criterion,
+test cases are arbitrarily included in the sample
+without regard to representation.
+\end{description}
+
+\noindent
+Although these methods reduce the benefit of statistical analysis,
+they can be quite valuable depending on the nature of the experiment.
+Opportunistic and haphazard sampling are most often used in tests with high costs,
+and are more common in fields other than software testing.
+Purposive testing is probably the most common form of commercial software testing,
+as it includes the manual writing of test cases,
+and it should be noted that any test system should allow for the inclusion of purposive test cases
+(e.g. allow a file of hand written test cases to be added to the test set).
+
+\section{Sampling Strategies}
+A test selection criterion is used to identify a test set from a sampling frame,
+and a sampling based test selection criterion
+uses one or more formal sampling methods to do this.
+The test set, however, is a theoretical construction,
+with no order or organization to the test cases it contains,
+factors that are quite significant in a system that supports the creation and evalution of tests.
+An implementation of an actual test selection criterion within a test program
+will be called its \emph{sampling strategy}.
+
+\begin{df}[Sampling Strategy]
+A sampling strategy is an implementation of a test selection criterion within a test system
+and is a combination of:
+
+\begin{itemize}
+\item a generator capable of creating the test cases in the \emph{sampling frame},
+\item a \emph{selection criterion} consisting of one or more sampling methods for selecting test cases,
+\item the \emph{organization} of the test cases to support an analysis of the results,
+\item and their \emph{priority} for evaluation.
+\end{itemize}
+\end{df}
+
+\noindent
+The test case selection criterion is
+applied to the sampling frame established for the test
+in order to define the test set.
+The priority of the test cases may form the order 
+in which the test cases are stored and / or evaluated,
+which is important if the test will be terminated once an error is identified,
+but should not otherwise influence the results.
+The way in which the test results are organized
+is important in the \emph{coverage analysis},
+the demonstration that the test data set is representative of
+the sampling frame of the test.
+This is generally the most important and contentious component
+of the argument for program correctness,
+so the sampling strategy needs to align with the coverage analysis.
+
+
+
+
+
+

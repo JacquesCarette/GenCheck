@@ -1,0 +1,305 @@
+%\section{Sampling Generators}
+
+If the selection criterion of a generator is
+the application of a generic sampling method (section \ref{sec:sampling_theory})
+to the property's domain,
+it will be called a \emph{sampling generator}.
+Sampling generators do not use information about 
+the implementation nor specification to guide test case selection,
+distinguishing them from other approaches to test case generation
+e.g. white-box testing with \DAISTS, 
+specification analysis with \HOLTG, 
+or manual preparation using human intuition.
+\QC, \SC, \GAST, \EC and \FEAT (chapter \ref{pbtsystems})
+all rely on sampling generators,
+with different sampling methods,
+for test case generation.
+
+There are two main categories of sampling methods,
+random and systematic (e.g. exhaustive, uniform interval and boundary)
+as discussed in section \ref{sec:samplingstrat}.
+Generators for Haskell data types can be classified in the same way,
+independently of the specific type being generated,
+by \emph{abstracting generation into the application of a sampling method
+and a structure the over values being sampled}.
+The structure organizes the values of the type,
+either implicitly through a traversal strategy,
+or explicitly through an index of the values,
+and effectively forms an interface for the application of a sampling method.
+A base sampling generator applies a sampling method to all of the values that might be generated,
+and ranked generators apply the sampling method to the values of like rank independently,
+but otherwise there is little difference in how the sampling method is applied.
+
+
+\subsection{Random Generators}
+
+Generally in software testing  a random value generator 
+is a deterministic numerical algorithm (pseudo-random number generator) that 
+emulates the production of a sequence of ``random'' values
+from an arbitrary starting value (the ``seed'').
+They will always produce the same sequence given the same seed,
+which allows repeatable testing,
+but care must be taken to use different seeds
+when collecting multiple sequences from the same generator.
+Many compilers provide libraries of random generators:
+for example Haskell provides the |System.Random| module.
+The randomness of such deterministic algorithms may be challenged,
+but for the purposes of this work it will be assumed that system provided
+(pseudo-)random number generators provide 
+sufficiently random sequences over their range.
+
+Creating a random sample of a given type $\beta$ requires three components:
+\begin{enumerate}
+\item a function $r: \sigma \ra [ \alpha ]$ that produces 
+an unbounded sequence of (pseudo-)random values of a type $\alpha$ given a seed of type $\sigma$
+\item a seed value $s \in \sigma$
+\item a map $f : \alpha \ra \beta$ or $f': [ \alpha\ ] \ra \beta\ $
+\end{enumerate}
+\noindent
+A generator may provide a one-to-one mapping between the sequence and generated values,
+or it may use multiple consecutive values from the sequence 
+to generate a single value of the target type.
+The former approach is common for simple, finite base types;
+the latter is used in \QC for the stepwise generation of recursive algebraic data types (discussed below),
+and also in \GC for composite generation of data structures and their elements.
+
+\subsubsection{Generators with Fixed Probability Distributions}
+The simplest form of random value generation produces 
+a sequence that is \emph{uniformly distributed} over its range,
+i.e. assigns a uniform selection probability of $1/n$ to each $n$ values.
+Alternatively, the weight given to each element 
+can be varied to create a different probability distribution for selection.
+System supplied random number generators are generally based on uniform distributions
+as they can be used to construct generators for other distributions.
+These generators will be called \emph{base} generators here
+to reflect their \role as the foundation for constructing other random value generators.
+
+Random generators with non-uniform distributions are defined by 
+a weight function that assigns a probability of selection to each element,
+combined with a base generator. 
+The definitions here are drawn from \cite{Knuth1997:ACP270146}.
+
+\begin{df}[Weight Function]
+If $\setA$ is a set with $n$ elements, 
+$w$ is a weight function for $\setA$ if
+
+$$w: \setA \ra [0, 1] \subset \reals $$
+such that
+$$\sum_{a_{k} \in \setA} w(a_k) = 1 $$
+and
+$$w(a_k) > 0 \forall a_k \in \setA$$
+\end{df}
+
+\noindent
+For example, the weight function for a uniform distribution over a set of $n$ elements is 
+$w(a_k) = frac{1}{n} \forall a_k \in \setA$.
+
+A discrete \emph{cumulative distribution function} (cdf) is derived from a weight function
+and an index over the elements:
+
+\begin{df}[Cumulative Distribution Function]
+If $\setA$ is a set with $n$ elements and an associated fixed index $I$ over those elements
+(e.g. $\setA_{I} = [ a_1, a_2, ..., a_n ]$),
+the cumulative distribution function $cdf$ induced by $w$ is:
+
+$$cdf_{(A,I)}: \setA_{I} \ra [0,1] \subset \reals $$
+$$cdf_{(A,I)} (a_k) =  \sum_{i=1}^{k} w(a_i)  $$
+\end{df}
+
+\noindent
+A  selection function for this distribution maps values in the unit interval,
+through the cumulative distribution function $cdf$, to the values to be generated:
+
+\begin{df}[Selection Function]
+A selection function for the cumulative distribution function $cdf_{(A,I)}$ is given by
+
+$$ sel_{_{(A,I)}}. [0,1) \ra  \setA_{I}$$
+$$ sel_{_{(A,I)}} (x) = a_k $$
+where 
+$$ cdf_{(A,I)}(a_{k-1}) \le x <  cdf_{(A,I)}(a_k)$$
+\end{df}
+
+\noindent
+The combination of a uniformly distributed random value (base) generator
+with such a selection function produces a \emph{distributed} generator,
+a random value generator with the distribution defined by the weight function.
+
+\begin{df}[Distributed Generator]
+For a uniform distribution (pseudo-)random value generator $r: \sigma \ra [ \alpha ], \alpha \in [0,1)$ 
+and a selection function  $sel_{_{(A,I)}}$ over an indexed set $\setA_{I}$,
+then
+
+$$ g_{cdf_{(A,I)}} : \sigma \ra [\setA_{I}] $$
+$$ g_{cdf_{(A,I)}} (s) = [ sel_{cdf_{(A,I)}}(r_i) ]$$
+where
+$$r(s) = [r_1, r_2, ...] , r_i \in [0,1)$$ 
+\end{df}
+
+Note that both the definition of the cumulative distribution function
+and the mapping from a uniform random (base) generator to the distributional generator
+require an enumeration of the values being generated
+to form the required index.
+In theory, it is always possible to define such an order
+as by definition generators have discrete and finite domains.
+Simple base types such as |Char| and |Int| can be ordered by 
+the binary encoding of their values;
+in Haskell this order is exposed through the |Enum|  (enumerated) class, 
+which includes |toEnum:: Int -> a, fromEnum:: a -> Int| methods.
+In practice, more complicated  finite data types,
+such as the IEEE floating point values,
+are difficult to enumerate effectively and 
+it may be more practical to restrict generation to a subset of the type's values
+or partition the domain and generate the parts independently.
+
+Infinitely valued types,
+such as recursive algebraic data types or arbitrarily large |Integers|,
+do not permit such a positive valued weight function.
+Instead,
+it is necessary to establish a partition,
+with countably many finite parts,
+define the weight, cdf and selection functions for each part,
+and then apply this to a base generator.
+\FEAT and \GC (chapter \ref{chp:enumgen}) both provide
+functions to enumerate the values in a complexity based partition
+of recursive algebraic data types,
+providing a practical means to create such families of ranked random generators
+for uniform distributions.
+
+\subsubsection{Stepwise Random Generators for Algebraic Data Types }
+Stepwise random generators provide one method of 
+generating recursive algebraic data types
+(the alternative of selecting from an enumerative index over the population is addressed in chapter \ref{chp:enumgen}).
+Recall that a regular recursive algebraic data type
+can be considered a disjoint union (or `sum') of labelled product types (section \ref{algdatatype}).
+In Haskell, algebraic data types are defined using 
+a type constructor which is the disjoint union of data constructors,
+which construct labelled products of their component arguments.
+A stepwise, or constructive, random generator 
+randomly picks one of the data constructors,
+and then randomly generates each of the component arguments
+for the labelled product.
+A generator must also exist for each of 
+the components of the type,
+as these will be called to create the component values;
+the generator will call itself recursively as required,
+repeating the selection of data constructor and components.
+\QC (\cite{Claessen2003}) generators use this approach for recursive types
+(although a uniform distribution base generator for simple base types).
+
+Unlike distributed generators,
+stepwise random generators consume a sequence of values
+from a base random generator during the generation process,
+one value for each choice of data constructor,
+and one or more for each non-constant product component.
+A weight is assigned to each data constructor,
+which forms the basis of a distributed generator for that choice,
+providing some control over the test case selection.
+Each product component generator provides its own weighting,
+independently of the other component generators.
+One issue with this approach is that there is no guarantee of termination for recursive types.
+This can be solved by explicitly setting a maximum number of recursive steps
+and only generating node or constant values when that maximum is reached,
+as \cite{Claessen2003} suggests.
+
+A more significant drawback of stepwise generation,
+when compared to distributional generators over a known cumulative distribution function,
+is the lack of control over the probability of selecting values for generation,
+and in particular larger recursive structures.
+The cumulative effect of the weights applied to each decision point and component,
+and the need to provide explicit termination criteria,
+may have an unpredictable impact on test case selection over multiple recursive calls.
+This may introduce a bias into the selection of test cases,
+or will at least make the lack of bias difficult to justify in the test context.
+The significance of this deviation from a true random sampling
+is unclear in the context of software testing, however,
+as the assumptions typically made in statistical sampling theory
+do not generally apply, as discussed in \ref{sec:sampling_theory}.
+
+\subsection{Systematic Generators}
+
+A systematic sampling method organizes a population and
+deterministically selects the elements for the test
+(see section \ref{sec:sampling_theory}).
+
+Exhaustive generators produce a single instance of each element of their domain.
+For base types, this is simply a matter of generating each binary encoding in turn
+and casting it to the appropriate type.
+For algebraic data types,
+each value of a disjoint union is generated
+by invoking the  data constructor for every possible combination of arguments
+(components in the labelled product).
+Again, each of those component types must have an associated exhaustive generator.
+
+Recursive types are generated through recursive calls to the exhaustive generator,
+as with random generators, 
+but termination must be explicitly addressed.
+This naturally leads to the use of a complexity measure,
+such as maximum recursive depth,
+as a way of limiting the size of the recursive values being generated,
+and to treating exhaustive generators as complexity ranked generators.
+
+Although random and exhaustive generators appear to be opposites,
+they share the common characteristic that there is no ambiguity
+about how to generate the arguments for a data constructor,
+and no information other than the total complexity (size) of the term being generated is required.
+For a random generator,
+when needed a single value is randomly generated;
+for an exhaustive generator,
+all possible combination of values for each data constructor
+that will lead to the required complexity must be created.
+These two generators represent the only non-trivial generators
+for which this is the case
+(a constant generator would also have this characteristic).
+
+\subsubsection{Uniform Interval Selection}
+Uniform sampling is the application of a methodical selection of values
+with the goal of guaranteeing representative coverage of the sampling frame.
+Coverage is dependent on their being an observable structure
+that meaningfully groups values so that representatives can be selected.
+This approach introduces a \emph{selection bias} which can cause the resulting test to be invalid:
+a simple example would be selecting every second integer to test an $even:: Int \mapsto Bool$ function.
+Since the coverage guarantee is not provided by random sampling,
+but random sampling is unbiased,
+these two approaches are complementary.
+A hybrid approach of using uniform selection with a small random variation applied to the selections can also be used in some cases.
+
+In this setting, methodical selection is equivalent to 
+requiring that every $k^{th}$ value be generated
+based on some ordering of the values in the domain.
+This requires that the generator somehow ``skip'' the other values
+while traversing the possible choices.
+For base types this can again be managed through the binary encoding,
+but for recursive algebraic data types requires more work.
+Chapter \ref{chp:enumgen} demonstrates, however,
+that for the most  important Haskell data types,
+namely base types and regular recursive algebraic data types,
+an order of this sort can be constructed mechanically from the type definition.
+\emph{Enumerating} recursive algebraic data types supports all four of these sampling methods,
+and can be used to create sampling generators with little programmer effort.
+
+\subsubsection{Boundary / Extreme Case}
+Boundary or extreme case selection is even more complicated,
+requiring that the generator prioritize \emph{unusual} values of the type.
+This requires a definition of unusual
+as well as a mechanism to identify and instantiate those values.
+For base types, 
+this will generally be the most extreme values in the range
+(e.g. |min::Int, max::Int| for Haskell |Int| type),
+but might also include other values (0 for |Int|, unprintable characters for |Char|),
+so should be addressed on a type by type basis.
+For tree-like recursive algebraic data types, however,
+an argument can be made that the most unbalanced structures,
+such as the left and right single branched binary trees,
+are the ``extreme'' values.
+More generally,
+the boundary or extreme values of a recursive algebraic data type
+are those instances that have the most repetition, or least variety, of component elements.
+Generating these structures requires that the most repetitious elements be generated first
+(with a higher priority)
+followed by elements with slightly more variety,
+for the arguments of each data constructor,
+which requires more information about the previously generated test cases.
+This construction of such generators tends to be type specific,
+but an approximation of a boundary generator can be made using
+the boundaries of an enumerated index for selection,
+e.g. selecting elements $1,\ n,\ 2,\ n-1,\ldots$.

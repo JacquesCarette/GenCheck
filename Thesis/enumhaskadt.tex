@@ -1,0 +1,65 @@
+%\section{Enumerating Haskell Algebraic Data Types}
+
+Haskell algebraic data types can be modelled by combinatorial constructions,
+The complexity of the term is the number of terminal nodes in the Haskell term
+(i.e. the combinataorial complexity, section \ref{complexgen}).
+If the construction is admissible,
+then there are a finite number of terms of that type for any given complexity,
+and the type can be enumerated.
+The approach is straight-forward,
+requiring only that:
+\begin{itemize}
+\item Haskell data constructors with multiple arguments
+be treated as combinatorial products,
+\item type constructors with multiple disjoint unions be evaluated pairwise, 
+\item and nullary constructors (constants) be treated as an atom over a distinct $1$ element sort.
+\end{itemize}
+
+\begin{tabular}[b]{llll}\label{countseq}
+Haskell Type Operator & Construction & Complexity & Comment\\
+constant & $\spec{X}_{a}$ & $1$ &atom over sort of single element $a$ \\
+singleton & $\spec{X}_{T}$ & $\setcard{T}$ & single element of type $T$ \\
+$T_1 \mid \dots \mid T_n $ & $\spec{T}_{1} \splus \dots \splus \spec{T}_{n}$ & $\sum_{k=1}^{n} $ & sum of disjoint terms \\
+$C\ T_1\ T_2 $ & $ \spec{T}_{1} \sprod \spec{T}_{2}$ & $\setcard{\spec{T}_{1}} \sprod\setcard{\spec{T}_{2}} $ &  
+                   product of constructions for each argument  \\
+$C\ T_1\ \dots\ T_n $ & $ \spec{T}_{1} \sprod \spec{S}$ & $\setcard{\spec{T}_{1}} \sprod\setcard{\spec{S}} $ &  
+                   where  $\spec{S} = \spec{T}_{2}\sprod \dots \sprod \spec{T}_{n}$ for $n > 2$ , $\spec{S} = \spec{T}_{2}$ for $n = 2$
+\end{tabular}
+
+\noindent
+This formulation guarantees that all constructions, 
+including nullary constants,
+are of size at least one,
+and therefore satisfies the ``epsilon-freeness'' constraint for composing constructions.
+The consequence of this weighting of type constants 
+is that certain data types will have a non-intuitive complexity, or size.
+For example,
+an empty list will be of size $1$, not $0$,
+as might be expected at first glance.
+Evaluating a property over an empty list, however,
+does entail at least one operation,
+and so this is a reasonable assessment of the complexity
+with respect to generating test cases.
+
+The alternative approach of allowing constants to be of size 0
+allows certain valid Haskell types to be inadmissible constructions,
+i.e. to have infinitely many constructions of the same size.
+Consider this somewhat unusual but allowable definition
+of a binary tree with either a null or element bearing leaf node:
+
+\begin{lstlisting}
+data T a = L | N a | Br (T a) (T a)
+
+t1 = Br L (N 1)
+t2 = Br L (Br L (N 1))
+t3 = Br L (Br (Br L L) (Br L (N 1))
+t4 = Br (Br (Br L L) (Br L L)) ((Br L (N 1)) (Br L L))
+\end{lstlisting}
+
+The complexity of each of these trees would be $1$ if
+the nullary leaf constructor is counted as weight $0$,
+instead of $ 2, 3, 5, 8$ respectively when counted as $1$.
+Although unusual it is still a valid Haskell type and therefore must be handled by
+any \pbt system generating test cases automatically.
+Any confusion over the size of containers with no elements
+is outweighed by the ability to correctly generate all valid Haskell algebraic data types.

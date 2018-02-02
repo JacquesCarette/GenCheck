@@ -1,0 +1,254 @@
+%\section{Formally define property-based testing systems}
+
+% for convenience
+\newcommand{\hf}{\ensuremath{\mathtt{f}}\xspace}
+\newcommand{\Bool}{\ensuremath{\mathtt{Bool}}}
+
+Testing a Haskell function \hf, using properties, consists of four, largely
+independent, steps:
+\begin{enumerate}
+\item construct a property $p$ that \hf should have,
+\item generate test cases (valid inputs for \hf),
+\item evaluate the property over (a selection of) test cases,
+\item report the results.
+\end{enumerate}
+
+A \emph{test system} is a framework to perform these steps.  As each
+step admits a number of useful variations, such a framework is only 
+useful if it provides a variety of capabilities.  To better establish the
+requirements for a \pbt, we first refine the definition and scope of each
+step.
+
+\subsection{Properties}
+
+Recall that in section~\ref{pbt}, we defined an \emph{implementation} $M$ as a
+computable \emph{interpretation} of a specification $S$, where the specification
+defines a set of symbols and their semantics as a set of axioms.
+The symbols are simply the names of the functions exported from a module.
+The purpose of a \pbt is to supply evidence supporting or refuting
+the correctness of this implementation.
+
+A \emph{property}  $ p: \alpha \ra \Bool$ is the implementation (using $M$) of
+a predicate $P : A \ra \boolean$ in the specification.  Note
+that, as it is an implementation, it is necessarily computable; without
+loss of generality, we can restrict properties to be univariate.
+It is important to note that there is a concretization step happening here,
+not just between predicates and properties, but also between data values:
+$\dom{P} \subseteq A$ and $\alpha$.  As is usual in computer science, 
+we will assume that $A$ and $\alpha$ are isomorphic, and will not explicitly
+worry about this isomorphism.  We can thus talk about $\dom{p}$ as well,
+which is a ``subset'' of the values of type $\alpha$.
+
+We will, from now on, talk interchangeably between predicates and properties.
+Furthermore, we will make some use of set notation over types; in the context
+of PBT, this actually causes no harm since all data we represent will
+eventually be concrete, and thus has a Set model.
+
+We say that a property $p$ holds if, over all values in the domain ($\dom{p}$),
+the property evaluates to $\True$.  Note that on $\alpha \setminus \dom{p}$, it
+is not required to hold, nor even be defined.  If $p$ is partial, we will call
+it a \emph{conditional} property.  For these, a \pbt must be careful to not
+attempt to evaluate the property outside its domain.
+
+If we have a (total) function $f : \alpha \ra \Bool$ such that 
+$f a = \True \Leftrightarrow a \in \dom{p}$, we call $f$ a
+\emph{characteristic function} for $p$.  Such functions are very
+useful to deal with partial properties.
+
+The collection of properties implementing the predicates of the specification
+will be called the testable specification,
+or just the specification where it is clear through context that
+the reference is to the properties and not the abstract predicates.
+
+\jacques{I deleted all the ``formal'' definitions, are they were completely
+equivalent to what is already above.  The above is sufficiently formal.}
+
+\subsection{Test Cases and Test Suites}
+
+For this subsection, fix a predicate $p : \alpha \ra \Bool$.
+
+Recall that a \emph{test case} contains a single value (the \emph{datum}) of
+type $\alpha$, and that a \emph{test suite} is a collection of test
+cases.
+
+Each test case may include additional information (\emph{meta-datum})
+that can be used to improve the evaluation of the test cases or reporting of the results.
+A datum will not necessarily be in the property's domain,
+in which case the test case can be characterized as \emph{invalid}.
+The meta-datum can be arbitrary, but their type must be uniform over a test suite.
+
+Given a test case $\tau : \beta$, we assume that we have a projection function $\datum$
+to extract the data.
+
+\begin{df}[Datum Function]
+$$\datum(\tau) : \beta \ra \alpha$$
+\end{df}
+
+\begin{df}[Valid Test Case]
+A test case $\tau$ is \emph{valid} for a 
+property $p$ if the datum is guaranteed to be in its domain:
+
+$$ \datum(\tau) \in \dom{p} $$
+\end{df}
+
+\subsection{Evaluation, Selection}
+
+We first define what happens when evaluating a single test case.
+Second, we define some items relating to test suites.
+Then we deal with actually running a test suite.
+
+\subsubsection{Verdicts and Results}
+
+The evaluation of a property at a datum does not merely produce a boolean 
+value.  Other data, such as the execution time or system resources used,
+can also be tracked as part of the \emph{result} of running a test.
+Of course, if the property evaluates to $\True$, we say that the 
+property holds (is a successful test evaluation), while for $\False$,
+a failure.  But this is not the only method by which a test can ``fail'':
+it is also possible that the test case was not valid, or that the 
+property evaluation took too long.  Lastly, the framework may decide to
+not evaluate every test case in a test suite, and this can be reported as well.
+
+In other words, rather than just pass/fail, we define a finer-grained notion
+of a \emph{verdict}, which encapsulates the outcome of a test case evaluation.
+
+\begin{df}[Verdict]
+A \emph{verdict} describes the result of a test evaluation.  We use the label
+set $\verdictset = \{ \success, \fail, \nonterm, \invalid, \noteval \}$
+as verdicts, and these should be intererpreted as:
+
+\begin{description}
+\item[$\success$] the property holds over a valid test case,
+\item[$\fail$] the property does not hold over a valid test case,
+\item[$\nonterm$] the property evaluation did not terminate in the allotted time,
+\item[$\invalid$] the test case was not in the property's domain, so was not evaluated,
+\item[$\noteval$] the test case was not evaluated and its validity is unknown.
+\end{description}
+\end{df}
+
+Note that the verdict of $\nonterm$ can also be used to indicate that an
+exception was raised during the evaluation of the test case,
+assuming the evaluation function is capable of trapping it.
+
+In general, different evaluation functions used.  They generally differ
+in what kinds of verdicts they can return.  \emph{Unbounded} evaluation
+assumes that $\nonterm$ is impossible; \emph{unconditional} evaluation
+can be used when $\invalid$ is impossible.  
+
+A \emph{result} consists of a test case, the verdict of the evaluation of the
+property for that case, and any additional information about the evaluation of
+the property at that value.  It must be possible to extract the verdict from
+a result.
+
+\begin{df}[Verdict Function]
+$$\verdict : \gamma \ra \verdictset$$
+\noindent where $\gamma$ is a result type.
+\end{df}
+
+\subsubsection{Test suites}
+
+A test suite $T$ is a collection of test cases.  $T$ can be 
+considered to be a set of test cases, although we will rarely 
+implement it that way.  For concreteness, we will use $t$ to
+denote a \emph{container}, $\beta$ a type of test cases, 
+and thus $t \beta$ will be the type of a test suite.  $t$
+will generally be assumed to be a \texttt{Functor} as well
+as \texttt{Traversable}.
+
+We can lift definitions previously made on test cases to test suites.
+For example, a test suite is \emph{valid}, if all test cases it contains
+are valid.
+
+A test suite may be partitioned (and labelled) -- to 
+assist in prioritizing the evaluation of test cases, and reporting the results.
+The labels could be based on the test data, meta-data or 
+other evaluation information.
+
+\begin{df}[Labelled Partition]
+A labelled partition, with label set $\labels$, is an ordered sequence of test suites
+$$ \Pi :: \nat \ra (\labels, t \beta)$$
+\end{df}
+\noindent
+ 
+The verdict over a test suite is determined by interpreting the collective
+verdicts of each result; partial verdicts can also be determined for any part
+of the result set.
+
+\subsubsection{Execution of a suite}
+
+While a test suite is any collection of tests, this does not mean that each
+of these will actually be run.  We can use different methods of choosing 
+when to stop testing, for example:
+\begin{itemize}
+\item terminate testing when a fixed number of errors are found (\QC, \SC),
+\item terminate after a fixed period of time, or
+\item complete all tests.
+\end{itemize}
+
+We will naturally say that an execution of a test suite 
+is \emph{complete} if all cases were evaluated (even if some resulted
+in $\invalid$ verdicts); \emph{partial} if some verdicts were $\noteval$;
+and \emph{time limited} if some were $\nonterm$. These can be combined.
+
+\subsubsection{Summary Verdicts}
+
+The verdict of a test suite is based on the combined verdicts of each individual result.
+We do this by
+\begin{itemize}
+\item putting an order structure on verdicts:
+$$ \fail > \nonterm > \success > \invalid > \noteval$$
+\item using the Foldable structure of the container to fold
+\item the induced join-semilattice structure (aka join, $\wedge$)
+fold the join ($\wedge$) 
+\end{itemize}
+\noindent over the verdicts.
+
+\subsection{Reporting}
+
+\jacques{you were doing the $4$ steps up to now, so logically you should 
+be talking about reporting at this point.}
+
+A report presents the results of a test suite, in a way useful to the
+(human) tester.
+Reports provide the verdict of a test and some level of detail about the results,
+organizing them in different ways depending on the goal of the report.
+Test reports should highlight any failed (or non-terminating) test cases.
+
+Report components should use the generic interface into 
+the results to get the verdicts and test case values.
+Optional evaluation information should be provided by 
+\emph{specializing} the results data structure, the report component,
+and either the test case generator (for test metadata) or
+the execution component (for test evaluation information).
+
+\section{Test Systems}
+
+\jacques{Made this into a section, as it is not about the $4$ steps anymore}
+
+A test system provides additional functionality over the $4$ steps described above.
+In particular, it can
+
+\begin{enumerate}
+\item obtain actual test cases from a generator,
+\item schedule the evaluation of test cases,
+\item perform evaluation of test cases (with potential early termination),
+\item organizes test results,
+\item report verdict and optionally a summary and/or details of the results.
+\end{enumerate}
+
+\noindent
+These components should adhere to a common interface
+but tcan be specialized to exchange additional information.
+
+Scheduling refers to providing the order in which test cases in a test suite are evaluated.
+Scheduling may be implicit,
+such as when applying |map| with an evaluation function over the test suite container.
+For example,
+\QC, \SC and the other packages reviewed in section \ref{pbt_soft}
+generate and evaluate test cases sequentially,
+terminating on the first error (by default).
+On distributed systems, scheduling would include 
+the allocation of evaluations to different nodes
+and collecting the results into the common result set.
+
+Test \emph{results} should be considered distinct from \emph{reports}, as discussed above.

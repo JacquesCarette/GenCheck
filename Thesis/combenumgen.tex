@@ -1,0 +1,176 @@
+%\section{Enumerative Generators}
+
+
+\subsection{Base Enumerations}
+
+A \emph{base enumeration} provides an index over the values of a finite type,
+and a selection function that constructs the values at each index.
+These are used to enumerate and generate built-in types (e.g. Int).
+
+\begin{df}[Base Enumeration]
+
+A base enumeration for a type $T$ consists of :
+\begin{itemize}
+\item $count :: \nat$ the cardinality of the set of values of $T$
+\item an \emph{injective} selection function $s :: [1 .. count] \ra T$
+\end{itemize}
+
+\end{df}
+
+\noindent
+The selection function is total 
+and provides an order over the enumerated values.
+The binary encoding of such values 
+provides a default order, bounds and selection function.
+
+Any type that is an instance of the classes |Bounded| and |Enum|
+allows the construction of a base enumeration over that type,
+using the |minBound, maxBound| and |toEnum| methods.
+Two variants of the selection function are shown,
+getBase which tests the input argument and is exposed through the programming interface
+and getBaseUnsafe which is used internally within \GC.
+
+\begin{lstlisting}
+type BaseSelector a = Count -> a
+data BaseEnum a = Base {baseCount::Count, baseSelect :: BaseSelector a }
+
+getBase :: BaseEnum a -> Count -> Maybe a
+getBase (Base c s) n | (n > 0)   = if c >= n then Just (s (n-1)) else Nothing
+getBase _  _         | otherwise = Nothing
+
+getBaseUnsafe :: BaseEnum a -> Count -> a
+getBaseUnsafe  (Base _ s) n = s (n-1)
+
+enumBaseRange :: (Enum a) => (a,a) -> BaseEnum a
+enumBaseRange (l,u) = 
+  let shift = toInteger (fromEnum l)
+      cnt = ((toInteger (fromEnum u)) - shift) + 1
+  in makeBaseEnum cnt (\x -> toEnum (fromInteger (x + shift - 1)))
+
+enumBaseInt :: BaseEnum Int
+enumBaseInt    = enumBaseRange (minBound::Int, maxBound::Int)
+
+enumBaseChar :: BaseEnum Char
+enumBaseChar = enumBaseRange (minBound::Char, maxBound::Char)
+
+\end{lstlisting}
+
+A generator can be constructed from an enumeration of a base type by
+applying a sampling method to the index of the enumeration,
+namely the integer range $[1 .. count]$,
+and then applying the selection function over that resulting sample of index values.
+Some examples, from \GC, illustrate the relationship between the sampling method
+(called an |EnumStrat|, short for enumeration test strategy),
+the enumeration and the resulting generator.
+Note that for exhaustive sampling in \GC,
+the sampling has been replaced by simply using an exhaustive list of the values as the generator for efficiency,
+and for random sampling the selector function randG is based on the Haskell |randomR| function.
+
+\begin{lstlisting}
+type EnumStrat = Count -> [Count]  
+
+exhaustG :: EnumStrat
+exhaustG u | u > 0 = [1..u]
+exhaustG _ | otherwise = []
+
+uniform :: Int -> EnumStrat
+uniform n u | n > 2 && u > 1 = 
+  let s = (toRational u) / (toRational n)
+  in if u > (toInteger n) then take (n+1) $ 1 : (map round (iterate ((+) s) s))
+              else exhaustG u
+uniform _ u | u > 1 = [1,u]
+uniform _ u | u == 1 = [1]
+uniform _ _ | otherwise = []
+
+randG :: StdGen -> EnumStrat
+randG s = \cnt -> if cnt>=0 then genericTake cnt $ gr s cnt else []
+    where gr t cnt = let (x,s') = (randomR (1,cnt) t) in x : (gr s' cnt)
+
+baseGen :: [a] -> Generator a
+baseGen xs r = if r == 1 then xs else []
+baseEnumGen :: EnumStrat -> BaseEnum a -> Generator a
+baseEnumGen strat e r | r ==1 = map (getBaseUnsafe e) (strat (baseCount e))
+baseEnumGen   _   _ _ | otherwise = []
+
+genCharAll      = baseGen [(minBound::Char)..(maxBound::Char)]
+genCharRnd  s = baseEnumGen (randG s) enumBaseChar
+genCharUni   k = baseEnumGen (uniform k) enumBaseChar
+
+\end{lstlisting}
+
+These can be extended to any enumerable base type,
+as the sampling methods apply to the index of the values,
+not the values themselves.
+
+\subsection{Parameterized Enumerations}
+
+Like generators, 
+parameterized families of enumerations can be used to enumerate
+subsets of a type's values.
+
+\begin{df}[Parameterized Enumeration]
+A enumeration of a type $T$ parameterized by a value $\alpha$ is given by 
+\begin{itemize}
+\item $\phi_\alpha$ a characteristic function that determines if a value of type $T$ is enumerated for a given $\alpha$
+\item $T' = \{t :: T \mid \phi_\alpha(t)\}$ the values of type $T$ that are enumerated
+\item count the cardinality ($n$) of $T'$
+\item selection function, a bijective function $s :: [1..n] \maps T'$
+\end{itemize}
+
+\end{df}
+
+\noindent
+One common use of parameterized enumerations within \GC is to enumerate a range of values,
+such as enumerating the lower case letters of |Char|, or non-negative |Int|.
+These are then used to construct generators for the restricted ranges in the same way.
+
+\begin{lstlisting}
+enumDfltChar, enumLowChar, enumDigitChar :: BaseEnum Char
+enumDfltChar   = makeBaseEnum 95 (\k -> chr ((32 +) (fromInteger k))) -- ' ' to '~'
+enumDigitChar  = makeBaseEnum 10 (\k -> chr ((48 +) (fromInteger k)))
+enumUpperChar  = makeBaseEnum 26 (\k -> chr ((65 +) (fromInteger k)))
+
+genDigitCharAll    = baseGen ['0'..'9']
+genDfltCharRnd   s = baseEnumGen (randG s) enumDfltChar
+genUpperCharUni  k = baseEnumGen (uniform k) enumUpperChar
+
+\end{lstlisting}
+
+
+\subsection{Ranked Enumerations}
+Enumerations provide simple and datatype generic technique for 
+constructing generators for simple base types.
+For infinitely valued types, such as recursive algebraic data types,
+a base enumeration is insufficient as the domain of the selector function
+would not be finite and therefore could not be sampled effectively.
+The solution, as with ranked generators, 
+is to define ranked enumerations that
+partition the values of the type and enumerate each part separately.
+
+\begin{df}[Ranked Enumeration]
+
+A ranked enumeration for the values of a type $T$ consists of :
+\begin{itemize}
+\item a rank function $\rho: T \maps \nat$ that induces the partition $\pi_{T} = [T_1, T_2, \dots]$ of $T$,
+where each $T_i$ is finite;
+\item $count :: \nat \ra \nat$ such that $count(r)  = \setcard{T_r}$ and $r$ is the rank;
+\item $selector :: (r:\nat) \ra [1..count(r)] \ra T_r $ 
+\end{itemize}
+\end{df}
+
+\noindent
+Given a ranked enumeration,
+a ranked generator can be constructed by 
+applying a sampling method to each rank of the enumeration.
+Note that while rank must be a total function over the type,
+there is no requirement that there will be values of any given rank.
+As a result,  a ranked enumeration can be used for finite types,
+which is useful for sampling large or complicated base types
+such as the IEEE floating point values, or even records with many components.
+The simplicitly of this approach is illustrated by the simple |enumGenerator| function in \GC.
+
+\begin{lstlisting}
+enumGenerator :: EnumStrat -> Enumeration c a -> Generator (c a)
+enumGenerator strat e rnk =  fmap (Enum.getUnsafe e rnk) (strat (Enum.counter e rnk))
+\end{lstlisting}
+

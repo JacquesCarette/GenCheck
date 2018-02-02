@@ -1,0 +1,430 @@
+\documentclass[11pt]{amsart}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{epstopdf}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\title{Gord's thesis outline}
+\author{Gord Uszkay}
+%\date{}                                           % Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+
+
+%Chapter 1
+\section{Introduction}
+\begin{enumerate}
+\item testing is an experiment: predicted vs. observable behavior, 
+sample, cost, supporting hypotheses, interpretation
+\item test case selection, representative sample, sampling methods, stratification, test strategy,
+heuristics, context dependent, subject of constant research
+\item automated test case generation: syntactic sampling, 
+lots of low dev cost, low value tests vs. expensive carefully selected tests
+\item property based testing: algebraic specification, axioms are invariants, properties,
+allows implicit testing of unobservable values, algebraic data types, well suited to autogen
+\item plethora of PBT systems, tightly coupled execution and test strategies, 
+popular concept, unnecessarily restrictive for test generation
+\item modular PBT framework decouples test case generation, evaluation, reporting;
+supports test program development and development / research of test strategies,
+draws from sampling theory to provide standardized approaches
+\item enumerations provide a solution for generating samples of alg.d.t.
+with a solid theoretical background but also reasonable performance characteristics
+\item contributions: test strategies, enumerative generators, modular framework / interfaces
+\item structure of thesis
+\end{enumerate}
+
+%Chapter 2
+\section{Property Based Testing}
+
+Why partition and sample the domain of a property (in the context of PBT+purity)
+
+\begin{description} 
+\item[Testing] {
+A test is a special form of experiment comparing 
+predicted behaviors or characteristics to those observed in a sample of the population.
+Informally describe a generic test and how sampling is the basis for the value of the evidence.
+
+\begin{enumerate}
+\item an hypothesis developed over a model of the population
+\item (semi-formal) Def'n of test, testable, observation , test hypothesis
+\item why is sampling needed (cost, infinite), cost, representative, diversity, evidence
+\item {sampling methods: random, systematic, stratified}
+\item {verdict reject or accept hypothesis, 
+supporting hypotheses for test results to form argument,
+confidence in verdict,
+statistical sampling as ex. (keep short)}
+\end{enumerate} }
+
+
+\item[Software Testing]{
+A software test is a special form of test with some distinct characteristics,
+refine the definitions to be software specific.
+Establish criterion for selecting test data based on cost vs. confidence.
+
+\begin{enumerate}
+\item behaviors, specification, implementation, observable, testable, test case, error detection
+\item{selecting test data, representative test cases, partitioning, infinite domains, complexity} 
+\item test costs: development vs. execution, repetition, automated test case generation
+\item {standard supporting hypotheses for software testing, 
+reporting, coverage analysis, test strategies, heuristics}
+\end{enumerate} }
+
+\item[Algebraic Specification] {
+Property based testing is a specialization of software testing for 
+implementing an algebraic specification.
+This establishes the observable, testable condition (property),
+and the population to be tested (domain of the property function).
+
+\begin{enumerate}
+\item{def'n algebraic specification as a theory presentation with sorts and equalities}
+\item{ model is implementation, test hyp is implementation models spec }
+\item{ property is computable model of axiom from specification }
+\item{ observability problem of universal quantification (mention existential quantification) }
+\item{ context: ref transparency + typed and why this matters (supporting hypotheses)}
+\end{enumerate} }
+
+\item[Property Based Test]{
+A property based test evaluates a property, 
+a computable implementation of one of the axioms of the specification.
+Most axioms include universally quantified variables,
+which are implemented as an input argument to the property function.
+Test cases are a single substitution of values for the axiom
+modeled as a single input argument to the property function,
+and the verdict of the test is a monoidal computation over the test results.
+
+\begin{enumerate}
+\item {properties: implementation $\forall a.a \rightarrow B$
+conditional properties $\forall a. Cond a => a \rightarrow B$ (like a type class)}
+\item test cases, results: test case 1 value of domain, test verdict 1 value of property at 1 test case,
+	test result is (case,verdict) pair, fail = (verdict of false), success (verdict of true);
+\item tests as collection of cases to collection of results, test verdict (true / false)
+\item a test program implements a single test to produce a verdict
+\item test context - basic PBT supporting hypotheses, motivate further refinement of argument
+\end{enumerate} }
+
+\item[Existing PBT Systems]{
+Critique existing systems, Highlight sampling methods and lack of distinct strategies, tight coupling.
+
+\begin{description}
+\item[Interface] {property function, simple default generators very popular, 
+API with different levels of control good idea}
+\item[Generators]{Generators built using combinators mirroring type constructor algebra works well; QC makes termination difficult to build into generators;}
+\item[sampling]{Each package presents different testing strategy: choice of strategy open area of research,are important, why lock tester into single test strategy, FEAT breaks mold but does not allow compositional strategies}
+\item[execution modes]{Tight coupling of sampling method with execution model prevents flexibility in selection methods}
+\item[reporting]{Little control over reporting, run to first error not always appropriate, designed for error detection not coverage analysis}
+\item[repeatable testing]{"Random" testing should not be random like in QC, needs to be repeatable, should have option of generating a new stream of seeds or keeping same one}
+\end{description} }
+
+
+\section{Sampling Algebraic Data Types}
+
+\begin{description}
+\item[Test Case Selection] { use cases, black box, white box, development vs. evaluation cost, syntactic domain analysis, brute force, easier to automate, generate many cases, each low value, complementary
+}
+
+\item[Algebraic Data Types]{
+Detailed definitions of the type system.
+
+\begin{enumerate}
+\item base types, type constructors, data constructors, 
+\item products, disjoint unions, Ê
+\item polymorphism
+\item Êcomposition / substitution
+\item Ê(mutual) recursion
+\end{enumerate} }
+\end{description}
+
+\item[Sampling Algebraic Data Types] { finite type sampling methods, stratified sampling, complexity,Ê sampling infinite recursive types,Êcomposition vs. substitution
+
+
+\begin{description}
+\item[Stratifying by Complexity (Rank)] substitution complexity; other measures
+\item[Random] Êprobability distribution functions from enumeration
+\item[Exhaustive and Uniform]
+\item[Boundary / Extreme] depend on index function being representative of the
+\item[Test Strategies]{ define generators by sampling method, allocate test cases to each rank / generator}
+\end{description}
+}
+
+\item[Test Case Generators]{
+Definition of a generator: select, (optionally) prioritize and instantiate test cases, may use sampling method.
+
+\begin{enumerate}
+\item{base generators for simple scalar types}
+Specialized Generators for specializations of types (e.g. people's names, address strings)
+Finite and infinite valued generators.  Duplicate values in generators.
+\item{part generators for complex scalar types reps.}
+Part Generators: ad hoc partitioning based on type specific issues related to testing (e.g. IEEE double)
+\item{rank generators for recursive types}
+\item{complexity ranked generators: maximal recursion depth, total compositions}
+\item {applying sampling methods to algebraic data types; generator implements one sampling method}
+\item{generator composition/substitution for type systems
+ranked composition vs. unranked substitution;
+ranking based on substitution set size (as a complexity measure)}
+\end{enumerate} }
+
+\item [Test Strategies]{
+Defined test strategy as an implementation of a sampling strategy for algebraic data types.
+\begin{enumerate}
+\item {test strategies as implementations of sampling strategies,  
+generator implements one sampling method}
+\item {applying sampling methods to base types, parts (random, exhaustive, uniform, boundary)}
+\item{stratification by rank; complexity measures for algebraic data types, complexity ranked generator}
+\item{regularity hypothesis, small scope hypothesis as supporting hypotheses}
+\item{sampling strategy defines test case allocation to each part / rank and sampling method;
+test strategy retrieves allocated number of test cases from each generator.}
+\item test cases from non-generated sources
+\item PBT test context schema template: regularity hypothesis, small scope + exhaustive sampling, other
+\end{enumerate} }
+
+\item[Enumerative Generators] {
+Demonstrate that enumerative generators are an effective method for sampling 
+algebraic types for property based testing
+
+I think this should really be a separate chapter,
+with more attention to the construction and sampling of enumerations.
+
+\begin{enumerate}
+\item{ formal definition: count, index and selection functions}
+\item{base, partitioned and ranked enumerations (by complexity)}
+\item{enumerative generator combines enumeration, data constructor and sampling method applied to $[1..n]$}
+\item{enumerative test strategy defined by rank, sampling method, number of test cases}
+\item{defining sampling methods and test case allocations for different ranks / parts of domain}
+\item{combinatorial constructions, ogf existence proof of enumerations}
+\item{iterative algorithms for construction of enumerations}
+\end{enumerate}
+}
+\item[Test Context] {formal argument for correctness, exhaustive testing, refining context, regularity hypothesis, uniformity hypothesis, small scope hypothesis, heuristics, Komolgrov complexity(?), pbt hypothesis schema}
+
+\end{description}
+
+%%Chapter
+\section{Property Based Testing Systems}
+
+Formally define the structure of a property based test system,
+allowing for module specialization.
+Expand on the definitions of the property based test to include operational considerations.
+Establish the requirements for a modular framework with independent 
+testing strategies, execution, and reporting modules.
+
+\begin{description}
+\item[Evaluation Function] {
+\begin{description}
+\item[property] $p : a \rightarrow Bool$, conditional property $p_C : a \rightarrow Bool \lor \bot$
+\item[test case]  (a, metadata)Ê(optional)
+\item[evaluation function] property(a) -> (verdict, evaluation info (optional))
+\item[test result] (test case, verdict, evaluation info (optional))
+\item[verdict] = Pass, Fail, Invalid, Non-terminating, Not evaluated
+\end{description} 
+}
+\item[Test Program] {
+\begin{description}
+\item[TestSuite] the collection of test cases
+\item[ResultSet] the collection of test results
+\item[test program]Êschedules and applies evaluation function over TestSuite to produce ResultSet(test result)
+\item[testÊmonoid] test cases, results and verdicts as monoidal computations
+\item[report] presents verdict and summary or  details of ResultSet to user, coverage analysis
+\end{description}
+}
+\item[Test System] {
+Define the user interface, formally define test strategies, generators, generator dictionaries, 
+component libraries, evaluation modes, report constructors, specialization
+
+\begin{enumerate}
+\item {Generator defined by type, sampling method, (finite or infinite);Ê
+base generator(type,sample): C(a), ranked generator(type,sample): Nat -> C(a)}
+\item {Test strategy: $base = \{(sampling method, no.cases)\}, ranked = \{(sampling method, rank, no.cases)\}$ }
+\item { Êgenerator dictionary: sample -> generator(type,sample) (base or ranked)
+	Ê Êstandard sampling strategies = $\{Exhaust, Random, Uniform n, Boundary\}$, could add others}
+\item {Test Suite = $Build (Test strategy (sample, (rank), cases), sample -> generator(type, sample))$Ê}
+\end{enumerate} 
+}
+
+\item[Requirements] {
+For modular framework for PBT. Ê
+
+\begin{description}
+
+\item[modular infrastructure] {
+Decouple generation, evaluation and reporting functions, allowing for specialization.
+
+Default test is constructed by creating evaluation function for property and 
+applying to datum of each test case to get result set.
+
+Test suite containers present interface that allows traversal, partitions, labels, merging,
+computing verdict using monoidal computation structure, store / retrieve for repeatable testing.
+
+Test strategies capture allocation of test cases across partitions of property domain,
+test cases created by generators,
+allow generic sampling strategies over standardized generators,
+specialized versions of generators for subtypes or optimization.
+
+specializations of scheduler may access metadata in test cases, 
+specializations of evaluation functions may record system information during evaluation
+specializations of reporting may use meta data or evaluation information.
+}
+\item[Properties, Cases, Evaluation function, Results] {
+Test cases consist of input to property (datum) and optionally metadata such as rank, 
+datum must be accessible without knowledge of metadata;
+
+test results consist of test case, verdict and optionally 
+information about property evaluation such as CPU time; 
+verdict must be accessible without knowledge of evaluation information;
+Success, Fail, Invalid, Time Out, Not Evaluated
+
+}
+\item[Tests, Suites, Verdicts, Reports] {
+Test applies evaluation function to each case in a test suite.
+Containers need efficient default processing for pure and sequential test when 
+test case / result containers are the same;
+need to be able to merge containers of cases / results to grow test, allow multiple results, etc.;
+for large test sets, want to group and sort test cases / results by metadata (e.g. rank) for scheduling, reporting;
+need to be able to save and retrieve test data sets for repeating tests.
+
+Scheduling is the sequencing of the evaluations on the available computing resources and 
+any required reorganization or marshaling to get results into requested organization;
+e.g. pure test is map across test cases; 
+sequential test is a fold / traversal in priority order until first failure; 
+testing onÊmultiple systemsÊrequires scheduling / evaluation / marshaling of result;
+early termination based on evaluation result.
+
+Reporting always includes verdict, may also include summary or details of test results / cases.
+specializations can use metadata, optional evaluation information to enhance reports.
+
+}
+\end{description} 
+}
+\end{description}
+
+%%%Chapter
+%\section{Constructing Combinatorial Enumerations}
+%Present the theory behind enumerations using combinatorial constructions;
+%explain relevance of ogf proof of existence,
+%provide iterative construction algorithms.
+%Finish by mentioning non-regular recursive structures,
+%non-algebraic data types, and species
+%as additional justification for using this approach.
+%
+%\begin{description}
+%
+%\item[Combinatorial Constructions]{
+% (of Salvy et al)
+%
+%\begin{enumerate}
+%\item{definitions of polynomial constructions, systems of constructions, recursive systems}
+%\item{admissible systems, epsilon-freeness}
+%\item{ogf exists so count is available}
+%\item{number of atoms is good complexity measure, defines cardinality of substitutions into a structure}
+%\end{enumerate} }
+%
+%\item[Algorithm for Enumerating Algebraic Data Types] {
+%complexity measure is number of atoms (constants are atoms, not 0 weight $\epsilon$ constructions),
+%
+%\begin{enumerate}
+%\item counting function 
+%\item index construction
+%\item selection function
+%\item non-regular recursive types cannot be enumerated this way
+%\item enumerating over compositions (variable complexity)
+%\item enumerating over substitutions (fixed complexity)
+%\item generator composition vs. enumerating compositions
+%\end{enumerate} }
+%
+%
+%\end{description} 
+%
+%% Chapter
+\section{GenCheck}
+
+\begin{description}
+
+\item[Architecture] {
+\begin{enumerate}
+\item Test strategy and test case generation. 
+\item Scheduling and evaluation of test cases.
+\item Reporting of verdict, results.
+\end{enumerate}
+}
+
+\item[Evaluation Interface] {
+
+Basic test interfaces for test cases, results, evaluation functions and
+containers for multiple cases / results, verdicts.
+
+\begin{description}
+\item[property]
+\item[datum] test case -> a
+\item[verdict] test result -> verdict
+\item[eval] property -> test case -> test result
+\item[test] eval -> test suite -> test result
+\end{description}
+
+}
+
+\item[Test Interface, Labelled Partitions] {
+
+Scheduling (concurrent, sequential), termination conditions, parallel testing
+
+Labelled partitions are a container to hold test suite / results;
+a container of labelled containers of test cases / results.
+Functor and traversable (foldable) (C(a) -> [a]) for concurrent and sequential testing;
+Monoidal (empty container no label, merge preserving labels and duplicates) 
+with an injection function (singleton container with label) for merge and verdict.
+
+Note that labelled partitions are also containers, so can have multiple levels of labels (categories) for cases or results
+
+Test System:Êevalp ->ÊLP(Lbl, test cases) -> LP'(Lbl', test results) schedules and evaluates property at each test case, stores result in same or different container;
+}
+\item[Reporting] {
+
+Report : LP(Lbl, test results) -> IO (LP(test results)); 
+
+verdict only, failures only, complete report
+
+use labels to categorize reports, verdicts for each label, groups of labels, etc.
+
+reports / verdicts can be combined because monoidal containers
+
+reports specialized using meta data or evaluation information from other specialized components.
+}
+
+\item[Test Strategies, Generators, Enumerations] {
+
+\begin{description}
+\item[base generator] { }
+\item[ranked generator]
+\item[enumeration]
+\item[enumerative generator]
+\item[sampling strategy]{$base = \{(sampling method, no. cases)\}, ranked = \{(sampling method, rank, no.cases)\}$ }
+\item[Test Suite]{$ Build (Test strategy (sample, (rank), cases), sample \rightarrow generator_(type, sample))Ê$}
+\item[Custom, Library Generators]{ generator(type,sample);
+standard library generators:$ sample \rightarrow generator(type, sample)$Ê(generator dictionary);
+can only use class system dictionary to allocate if single form of sampling is used
+can provide supplemental generator dictionary and override with custom generators}
+\item[Generator Dictionary] {$sample \rightarrow generator(type,sample)$ (base or ranked);
+standard sampling strategies = $\{Exhaust, Random, Uniform n, Boundary\}$, could add others;
+enumerative generator builders : $enumeration_type \rightarrow sample \rightarrow generator_(type,sample)$;
+standardizing sampling schemes and enumerations allow type independent test strategies}
+\end{description} }
+
+\item[Implementation Details] {
+ (Haskell specific issues, nits)
+
+\begin{description}
+\item[Lists] { are very efficient structures in Haskell, monoids and functors, so are good containers. ÊGenerators for list types should not be built using the enumerative modules, they are custom built.}
+\item[Exhaustive Generators]{should not use enumerative generators for exhaustive samples, 
+this is inefficient.}
+\end{description} 
+}
+%
+\item[SimpleCheck]{ strategy as a sample test system built atop GC. }
+
+\item[QC, SC, FEAT Compatibility]{can all be implemented atop GC too.}
+\end{description} 
+
+\end{document}  

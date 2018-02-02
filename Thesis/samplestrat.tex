@@ -1,0 +1,126 @@
+%\section{Sampling for Property Based Testing}\label{sec:samplingstrat}
+
+An early example of a sampling strategy for property based testing
+is provided by \cite{Cartwright1981}:
+
+\begin{quote}
+One possible approach to generation test data ... 
+at each predicate forcing a variable binding,
+the generator makes a ``non-deterministic'' choice ... 
+from a small set of heuristically generated values...
+If the variable belongs to inductively defined type T, 
+then the base cases and first level constructions are the obvious choices.... 
+generation of test cases proceeds until all possible non-deterministic choices
+have been tried (given the generator sets a small bound on the maximum recursion depth...
+\end{quote}
+
+\noindent
+This suggests exhaustively testing of all possible terms up to a certain complexity,
+organizing and prioritizing the smaller test cases first,
+but randomizing the order across the values at each depth of the recursive structure.
+This strategy is based on the heuristic that errors will, on average,
+be found sooner by randomly traversing the domain instead of linearly,
+emphasizing that the selection criterion is only one of the roles of the test strategy.
+
+It is sensible to combine different sampling methods in a test,
+particularly within a stratified sampling strategy.
+An example of a compound sampling strategy that is suitable for property based testing
+over a domain consisting of a recursive algebraic data type is :
+
+    \begin{enumerate}
+    \item exhaustively test the smallest / simplest test cases up to a certain size of structure
+    \item from where exhaustive testing is infeasible
+    up to the maximum complexity that will be tested:
+    \begin{itemize}
+    \item use uniform selection to establish coverage over all parts
+    \item select additional cases to over-represent the boundary structures,
+    those which represent an unusually high proportion of one choice of a disjoint union
+    \item randomly select additional values of random complexity to
+    avoid any possible bias introduced from the uniform and boundary selection criteria
+    \end{itemize}
+    \end{enumerate}
+
+\noindent
+This kind of strategy is supplied in the \GC framework as the standard \emph{test suite}
+(as explained in chapter \ref{chap:GCimplement}).
+
+\subsection{Evaluating Test Strategies}
+
+The choice of sampling strategy for property based testing,
+and software testing in general,
+remains an open area of research
+(\cite{ZhuHallMay1997}, \cite{Hierons}).
+Even the 
+The se a canonical sampling strategy
+that should be used for property based testing,
+but instead suggest that a variety of sampling methods 
+should be available and combined into software strategies.
+Random sampling is simple to use and has very good statistical properties,
+but systematic sampling ensures a diversity of values and avoids duplicates.
+Stratification allows different sampling methods to be used 
+over different subsets of the domain.
+Purposive sampling such as static analysis of the property
+or expertise in the problem domain take advantage of human experience.
+The benefit of each will depend on 
+the nature of the values being sampled and 
+the software system under development;
+
+The value of a strategy as evidence toward the tested hypothesis
+can be evaluated independently of any individual test.
+Evaluating sampling strategies is quite a subtle and tricky task.
+Testing strategies must be evaluated by comparing their error detection rate,
+the confidence a successful test will generate,
+and the cost of developing and evaluating the test.
+\cite{WeyukerEtal1991} presents various ideas for evaluating sampling strategies
+without the use of statistical models:
+
+\begin{itemize}
+\item testing ``mutations'' of a correct program to ensure errors are found
+(\cite{BuddEtal1980} is cited for this approach and provides a good explanation of the approach)
+\item deliberate error injection
+\item comparing sampled test results to exhaustive tests
+\item comparing different test strategies over many different software projects
+\end{itemize}
+
+\noindent
+Mutating correct programs and deliberate error injections
+provide an explicit way to test the value of a specific data set
+in uncovering errors in a program.
+The other two evaluation techniques compare the effectiveness
+of test data selection criterion over multiple test contexts to determine
+their effectiveness.
+
+There are two kinds of costs in a test:
+the cost to develop the test and the cost to evaluate it.
+The cost of software testing is largely in the development of the test,
+while the cost of performing or repeating each test is often very low
+(when compared to testing crumple zones in automobiles for example).
+Reducing the cost of \emph{developing} the test cases is 
+therefore the priority for sampling methods,
+as opposed to the cost of evaluating them.
+Automatic test case generation using sampling techniques 
+allows test cases to be created inexpensively,
+but loses the benefit of static analysis and domain expertise.
+
+The confidence associated with a successful test 
+is based on the assertions necessary to use the evidence gathered
+in the argument for program correctness.
+The stronger the hypotheses required to justify program correctness  from the test results,
+the weaker the overall argument.
+Different sampling strategies require different hypotheses to form such an argument,
+and offer varying levels of support for these assertions.
+The arguments supporting the additional assertions are subjective,
+as is the interpretation of the support provided by a test,
+so any arguments drawn from this aspect of the test strategy will be heuristic.
+
+All of the sampling methods described above have their place in software testing,
+and should be incorporated into any tool that will support property based testing
+and automated test case generation.
+Evaluating sampling strategies is an area of ongoing research
+that can be supported by automated test case generation,
+since many sample data sets can be generated and compared automatically.
+The remainder of this chapter demonstrates how 
+sampling methods and strategies can be implemented
+across the types likely to be found in algebraic specifications,
+with a focus on the Haskell language as a practical example.
+

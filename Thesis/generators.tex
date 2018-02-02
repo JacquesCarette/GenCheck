@@ -1,0 +1,413 @@
+%\section{Generators for Finite Types}: 
+In the most general sense,
+generators produce an ordered 
+collection of values of a given type
+based on a test selection criterion
+(the formal definition (pg. \pageref{sub:basegen})  
+follows this informal discussion of generator characteristics).
+A generator plays three complementary roles in generating test cases for a \pbt program:
+\begin{enumerate}
+\item selects test cases from all or a part of the input type;
+\item instantiates those cases as arguments to pass to the property function; and
+\item orders the test cases for evaluation
+\end{enumerate}
+\noindent
+This general definition allows several important variations.
+A generator may:
+
+\begin{enumerate}
+\item  produce a finite or unbounded sequence of values,
+\item guarantee unique values or permit duplicates,
+\item have a range that does or does not include all of the type's values,
+\item may order values according to their priority for testing,
+\item guarantee that values are valid test cases,
+i.e. are part of a property's domain,
+or may allow invalid test cases to be generated 
+(which must be detected as part of the test).
+\end{enumerate}
+
+\noindent
+A wide variety of these generator characteristics can be seen
+in the \pbt systems evaluated in chapter \ref{pbtsystems}.
+For example:
+
+\begin{itemize}
+\item {the random value generators of \QC and \FEAT
+provide an unlimited stream of values,
+in the order they are to be tested, allowing duplicates,
+with every value up to a set ``size'' having a non-zero probability of being generated; }
+\item { \SC generates one of each value up to a specified size,
+with priority given to smaller cases, 
+but within each size orders cases for efficient generation, not test priority; }
+\item { \FEAT uniform interval selection picks every $k^{th}$ value from an index once,
+with the other values excluded from possible generation,
+prioritized by size;}
+\item{ A ``hard-coded'' list of test cases is also a form of generator,
+providing a fixed and finite list of values (presumably without duplicates),
+possibly in an intuitively, but not necessarily technically, significant order.}
+\end{itemize}
+
+The order may not be relevant if all of the test cases will be evaluated,
+but can influence the perceived efficiency of a test program
+that stops after one (or a fixed number) of errors are found.
+All of the \pbt systems in chapter \ref{pbtsystems} use such a stopping criterion,
+and attempt to order the generation of test cases to find errors earlier
+in their sequential evaluation.
+\QC, \SC, and \FEAT generate recursive types sequentially 
+from smallest (least complex) to largest,
+a heuristic based on the small scope hypothesis (\ref{def:smallscope}).
+In \EC the size and complexity of the test cases are deliberately mixed,
+a heuristic intended to find errors that would only appear in larger test cases earlier.
+Each of these packages identifies their test selection and prioritization as 
+a significant advantage of their test case generation strategy.
+
+The generation of \emph{invalid} test cases is a pragmatic issue that arises 
+in automated test case generation.
+As discussed in section \ref{formal_pbt},
+a property is a typed, univariate, Boolean valued function
+that must hold over the property's domain.
+The values of the property's domain must be of the property's input type,
+but the input type may include other values over which 
+the property is not required to hold, and may even be undefined.
+Ideally, the generator would be written to only provide valid test cases,
+but it may be more practical to allow invalid values to be generated
+and subsequently filter them out.
+For example,
+a test case that required a sorted list could be 
+created with a (general) list generator
+and a filter that only allows ordered lists through.
+This kind of post-generation filtering might well have negative repercussions for the resulting test set,
+as shown in \cite{Claessen2000}),
+and should generally be avoided.
+A test program that uses filters must ensure that 
+invalid cases are clearly reported and excluded from the verdict.
+The issue of invalid test case generation will be addressed in more detail
+in chapter \ref{chap:requirements} under the heading of \emph{conditional} tests.
+
+\subsection{Base Generators}\label{sub:basegen}
+Built in, or base,  types have no decomposable structure,
+and so their generators are simply an ordered collection of values:
+
+\begin{df}[Base Generator]
+A generator for a scalar (or built-in) type $T$ is a function 
+
+$$g: \nat \ra T$$
+
+\noindent
+such that $g$ is either total
+or defined over an initial segment $[1,n]$ (where n may be 0, i.e. the empty sequence).
+\end{df}
+\noindent
+Allowing generators to be either finite or unbounded 
+creates some challenges in their implementation and use,
+but provides the flexibility required to support different sampling methods.
+Empty generators are relevant when part of a family of ranked generators (section \ref{complexgen}).
+
+Base generators may equivalently be defined as 
+a (possibly infinite) \emph{list} of values of the generated BASEtype, i.e. $[ T ]$.
+This definition is convenient,
+and \SC, \FEAT, \EC and \GC have all implemented their generators as lists.
+These two definitions of generators will be used interchangeably in 
+the theoretical parts of this thesis
+(and generators of a type $T$ will generally be denoted as $[ T ]$ for brevity),
+but the distinction between the function and list definitions
+will be made explicit in any discussion of \pbt implementations.
+
+As noted earlier,
+generators must select, instantiate and order a sequence of values of the specified type.
+The binary encoding for |Char| and |Int| types share the property
+that there is an \emph{enumeration} of their values,
+namely a bijective functions between the values of the type
+and an integer range $[1,n], n \le 2^k$ where $k$ is the number of bits in the encoding of the type.
+We call such functions a \emph{selection} function,
+and the interval $[1..n]$ forms an \emph{index} of the type's values.
+In Haskell this property of a type is represented by the |Enum| class
+with the methods | fromEnum :: Int -> a | and | toEnum:: a -> Int|.
+If a type may be enumerated,
+it may be generated by mapping the selection function over 
+an integer valued generator,
+providing a type-independent approach to generation.
+
+Any type encoded with a fixed number of bits
+could be enumerated in this fashion.
+However, for more populous types or complex binary encodings,
+such as IEEE floating point types,
+a simple linear enumeration may not be useful for generating test cases.
+The Haskell Enum instance for the Double type
+provides a particularly vivid example of 
+the problems with linearly enumerating a complex type:
+the selection function maps $[1 .. (2^{31}-1)] \ra [1.0, 2.0, ...., 2.147483647e9]$ 
+a rather poor representation of the |Doubles| for a test data set.
+A more appropriate approach for generating IEEE floating point types
+is to generate pairs consisting of the mantissa and the exponent,
+and include an additional base generator for the special values NaN, $\infty$, $- \infty$, etc.
+
+Another approach to generating values of a base type is
+to use the lexical rules for that type,
+generating the \emph{representation} of the value
+as an algebraic data type (as developed through the remainder of this chapter)
+instead of as a base type.
+
+\subsection{Parameterized Generators}
+
+Generators may be parameterized depending on the sampling method they apply for the value selection criterion.
+Some examples of parameterized generators include:
+\begin{itemize}
+\item providing an upper and lower bound to the values generated,
+\item random generators parameterized by a seed,
+\item uniform interval generators parameterized by the sampling interval size.
+\end{itemize}
+
+Generators with range parameters can be used to 
+sample part of the property's domain
+by restricting each generator to provide values for a particular part of the domain.
+This allows different weights and sampling methods over different parts of the test domain
+when it is sufficient to sample a small number of parts independently.
+This is particularly useful for data types that have a few of distinct parts
+that might unevenly challenge the implementation:
+
+\begin{enumerate}
+\item using separate generators for |Double| special values,
+values with large mantissas and values with large exponents;
+\item for records that use a field with an enumerated code to represent distinct entities,
+such as a list of external vs. internal network connections,
+generate each class independently.
+\end{enumerate}
+
+\noindent
+Section \ref{complexgen} introduces a special kind of parameterized generator,
+called \emph{ranked} generators,
+each of which samples a finite part of an infinite test domain.
+The rank acts as an index into a partition of the domain,
+and may be combined with other parameters to allow
+finite sampling techniques to be applied to infinite types.
+
+\subsection{Generating Products of Finite Types}
+A generator for the product of finite types
+may be constructed from generators for each of the components.
+This is a fundamental building block in developing a theory of generators.
+
+\subsubsection{Generator Products}
+One intuitive approach for generating products is to
+use the Cartesian product of finite component generators,
+defined as:
+
+\begin{df}[Generator Product]
+Give generators $g_1,g_2$ for (finite) types $T = (T_1, T_2)$, 
+define their product (denoted $g_1 \sprod g_2$) as
+
+$$ g = [ (x_1, x_2) \mid x _1 \leftarrow g_1, x_2 \leftarrow g_2 ] $$
+
+with a similar definition for n-tuples.
+\end{df}
+
+\noindent
+Generator products are particularly suitable for 
+exhaustive or other dense sampling generators in Haskell,
+because the intermediate products are reused,
+e.g. an exhaustive n-tuple generator would
+share a generated list of (n-1)-tuples with 
+each of the first element values.
+\SC exhaustive generators are constructed in this fashion.
+
+The product of the component generators will only be suitable for a \pbt
+if each of the component generators produces a reasonable number of element values
+with respect to the property being tested.
+This is particularly an issue with the inclusion of large base types such as |Int|,
+where small variations in the values have little or no impact on the outcome of the test,
+i.e. are part of the same \emph{equivalence class} of test cases with respect to the property.
+The component generators should be defined to provide a list of values
+likely to provide an appopriate level of variation in the values of the product type.
+For example, \SC addresses this issue by limiting (enumerated) base type values chosen for a test
+to a small range of values around the center of the enumeration,
+e.g. $g_{Int} = [-2,-1,0,1,2] $, depending on the size of the test case
+(unfortunately, this is not a particularly good sample of the |Int| type for testing).
+
+\subsubsection{Step-by-Step Generation}
+
+An alternative approach that allows greater variability in each of the components
+is to generate the components one at a time as they are needed,
+an approach called ``step-by-step'' here.
+Each time a value of component type $a_i$ is needed,
+the next value from the generator for type $a_i$ is consumed.
+The component generators may be finite or infinite in this approach;
+if there are no further values from any one of the component generators,
+the product generator is exhausted.
+
+\begin{df}
+A generator $g$ for type $T = (T_1, T_2, ..., T_n)$ 
+is constructed   \emph{step by step} from the component generators $g_1, g_2, ..., g_n$
+if 
+$$ g_{T} (k) = (g_1(k_1), g_2(k_2), ..., g_n(k_n)) $$
+\noindent
+where $g_j(k_j)$ represents the next component from the $j^{th}$ generator.
+\end{df}
+\noindent
+This is the result that would be produced using the |zip| Haskell functions:
+e.g.
+\begin{lstlisting}
+g = zip3 g1 g2 g3
+\end{lstlisting}
+\noindent
+Step-by-step generation is particularly suitable for random and ad-hoc sampling
+because the components of the product may be sampled without regard to the other components,
+i.e. the sampling method for the tuple may be decomposed into sampling each of the components independently.
+\QC uses this approach for its Arbitrary class random generators,
+using the class dispatching system to invoke the needed generator
+for each value in a product.
+
+If the tuple's component element types are distinct,
+their generators must be distinct.
+Where multiple elements are of the same type, however,
+it may be desireable to use the same generator
+for all like typed components in each product value.
+The $g_i$ in the definition above would not be distinct,
+and the $k_j$ generator indices allow the same generator to supply
+multiple elements to the product generator.
+For example, a generator for pairs of type $(a, a)$ can be created from a generator for type $a$
+by ``pairing up'' the values, i.e.
+
+$$ g_{(a,a)}(k) = (g_a(2k-1), g_a(2k)) $$
+
+or in list form
+
+$$ g_{(a,a)} = [(a_1, a_2), (a_3, a_4), ...] \text{ where } g_a=[a_1, a_2, ...] $$
+\noindent
+More generally,
+if an n-tuple has multiple elements of a given type,
+each of those elements can be extracted from the same generator 
+in the order they appear in the tuple.
+Using a single generator alters the relationship between like typed elements in a product,
+and is useful for maintaining the sampling distribution
+for products with randomly selected elements.
+It is particularly useful, however,
+when generating arbitrarily large, recursively defined, types
+in which an arbitrary number of elements are required to populate the generated structures,
+as will be discussed in section \ref{complexgen}.
+
+\subsection{Substitution Generators}\label{sub:subgenops}
+Generator products and step-by-step generators are the opposite extremes of 
+how generated elements can be used to populate generated product values.
+They both treat the product as a structure with ``holes'' to populate with elements,
+and the elements are extracted from element generators.
+The difference between the two types of generators is in
+how the generated element values are combined
+to create the resulting product values:
+generator products use all combinations of the element values (exhaustive),
+but step-by-step generators use each element only once.
+It is possible, however, to define a hybrid of this approach
+in which some elements of a product are populated exhaustively
+but others are only used once,
+or use additional ``substitution strategies'' such as generating 
+all permutations or combinations of (like-typed) elements.
+We call this broader family \emph{substitution} generators,
+and the mapping from the generated elements to generated product values the ``substitution strategy''.
+
+This additional control over substitution strategies 
+provides one relatively simple, pragmatic approach to
+sampling very large test domains,
+such as those based on complicated records,
+allowing specific elements or combinations of elements to be more heavily weighted in a test suite.
+It is also important for generating recursively defined data types
+(as will be discussed in section \ref{complexgen})
+where the definition of substitution is extrapolated
+to populating the tree-like structures of algebraic data types.
+In these cases,
+the substitution generator combines a structure generator that 
+samples the possible ``shapes'' of the recursive type,
+and then applies a substitution strategy to the element generators
+to populate the selected structures with elements values.
+
+\subsection{Disjoint Unions}
+
+Generating a type with disjoint unions simply result in 
+choices being made between product generators.
+There are two intuitive approaches:
+
+\begin{enumerate}
+\item Concatenate the results of the product generators
+(generally but not necessarily in the order they are defined in the type constructor).
+\item Choose one of the products at generation time by generating a ``decision''.
+\end{enumerate}
+\noindent
+These two strategies treat each component of the disjoint union independently,
+and thus are the easiest to implement.
+\SC exhaustive generators use concatenation,
+while \QC arbitrary generators use a potentially weighted choice.
+
+These simple approaches do not allow for a coordinated sampling strategy over the entire value population.
+\FEAT and \GC \emph{enumerative} generators instead use combinatorial techniques to
+create an index over \emph{all} of the values that could be constructed,
+and then uniformly apply a sampling strategy to select values.
+Enumerating and indexing the entire population
+is particularly advantageous when
+the component types of the products being generated have significantly different cardinalities.
+
+This situation arises frequently, for example, in generating trees,
+but can also apply to simple product structures used in practical ``real-world'' applications.
+Consider a module supporting a directory of local and remote file directories.
+
+\begin{lstlisting}
+-- simple directory for file repositories
+newtype TCP4 = TCP4 {unTCP::(Int,Int,Int,Int)} -- [0..255] 
+newtype FLoc = FileLoc{unFL :: String} 	-- directory
+data Protocol = FTP | SFTP | HTTP | HTTPS
+data Node = 
+    Local FLoc 
+  | Remote Protocol TCP4 FLoc 
+
+-- provided generators
+tcp4Gen :: Generator TCP4
+tcp4Gen = [tcp_1, tcp_2,...,tcp_n] -- node ips
+
+prtclGen :: Generator PrtCol
+prtclGen = [ FTP, SFTP, HTTP, HTTPS ]
+
+badLocGen :: Generator FLoc
+badLocGen = [bloc_1, bloc_2, ...] -- invalid directories
+
+goodLocGen :: TCP4->Generator FLoc
+goodLocGen = [gloc_1, gloc_2, ...] -- valid directory`
+ 
+\end{lstlisting}
+
+The first step in any of the generator construction approaches
+is to define |Local| and |Remote| node generators.
+It is assumed here that the sampling strategy has already been incorporated
+into the component generators.
+
+\begin{lstlisting}
+locNdGen :: Generator FLoc -> Generator Node
+locNdGen = map Local 
+
+remNdGen :: Generator (PrtCol,TCP4,FLoc) -> Generator Node
+remNdGen = uncurry3.Remote
+
+\end{lstlisting}
+
+A stepwise generator for Nodes
+would then combine the two component generators
+through a stream of choices between the two.
+A \QC Arbitrary class random value generator, for example,
+would have a weight assigned to picking the local or random node,
+and then choose which type of node based on a stream of randomly generated probabilities.
+This could be described as a ``weighted zip'' function,
+combining the contents of two lists into one but 
+non-deterministically staggering the order of the elements.
+
+A generator that concatenates the outputs would first provide all of the (finitely many) local nodes to be generated first
+and then provide the remote nodes.  
+
+\begin{lstlisting}
+ndGen :: Generator FLoc -> Generator (PrtCol, TCP4, FLoc) 
+                                    -> Generator Node
+ndGen flg ptfg = (locNodeGen flg) ++ (remNodeGen ptfg)
+\end{lstlisting}
+
+The third approach, used by \GC and \FEAT,
+is to enumerate all possible values of both the local and remote nodes,
+and then construct a selector function |s : Integer -> Node|
+that provides an index into all possible values of the |Node| type.
+Generators apply a sampling method to the indices $[1..n]$,
+where $n$ is the number of possible |Node| values,
+and return the mapping of selector function over the sample..

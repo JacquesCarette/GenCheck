@@ -1,0 +1,226 @@
+%\section{Software Testing}
+
+The variables that may affect the outcome of an experiment
+must be controlled in some way in the data selection process.
+There are five categories of options for dealing with factors in an experiment (\cite{Holt1982}):
+\begin{description}
+\item[randomized]{Randomly select values for this variable 
+from some probability distribution.}
+\item[systematically varied]{Deliberately select a variety of values for the variable.}
+\item[measured]{If the variable cannot be controlled but can be measured,
+the measurement can be included as part of the test result,
+and a reasonable diversity of values can be argued post hoc.}
+\item[fixed]{A single value for this factor can be selected and maintained for the entire test,
+so that variations in it do not confound the results.}
+\item[ignored]{If the factor cannot be set, measured or controlled, 
+it must be ignored and acknowledged as a weakness in the test.}
+\end{description}
+\noindent
+Those factors that are expected to directly affect the observations
+will generally be varied as part of the experiment,
+or will be measured under sufficiently different conditions
+to create a diversity of values for the observations.
+Factors that are assumed not to impact the system's behavior,
+or cannot be directly controlled,
+will either be fixed and documented as part of the experiment,
+or measured and recorded as a possible confounding factor.
+
+These factors can be applied to software testing,
+and in particular to ``real world'' testing,
+as opposed to the abstract formalisms of the previous section.
+In an properly performed actual software test,
+the choices of harware, operating system, software tools, etc.
+may be fixed and measured (all tests performed on the same system)
+or systematically varied (repeated on muiltple platforms with different configurations).
+Alternately, the configuration of the test platform can be ignored,
+with consequences well known to experienced practitioners.
+Similarly, these factors can be considered in the choice of test cases.
+
+\subsection{Selection Criteria}
+The \emph{population} of a software test experiment consists of 
+all possible \emph{valid} test cases,
+i.e. all combinations of inputs and system states allowed by the specification.
+Test cases are composed of one or more component values,
+and these values can usually be controlled and varied as part of the test.
+These values may be systematically or randomly varied
+and combined to create a diversity of test cases.
+\emph{Invalid} test cases may also produce a behavior in the system,
+but since the behavior is unspecified, 
+invalid cases should not be considered in the verdict.
+The subset of the test case population that is 
+evaluated during the test is called the \emph{test set} 
+(or \emph{test suite}).
+
+A test is \emph{exhaustive} if every case is tested,
+i.e. the test set is the entire population.
+A successful exhaustive test is effectively a point-wise proof
+that the implementation is correct,
+when combined with the hypotheses supporting the validity of the test process.
+Unfortunately such a test is only possible for the simplest of specifications
+due to the large number of possible inputs for even a moderately complex system.
+Note, however, that exhaustive testing can be performed on a subdomain of the population,
+which is a particular effective strategy according to the small scope hypothesis (\ref{def:smallscope}).
+
+When exhaustive testing is not feasible,
+a \emph{selection criterion} is applied to the population of test cases
+to define a test set that is feasible to evaluate.
+The selection criterion should inspire confidence that 
+the software is correct over the untested cases,
+but this claim is generally subjective and often contentious.
+An intuitive starting point for defining the adequacy of a test case selection criterion
+is provided by \cite{GoodenoughGerhart1975}:
+\begin{df}[Reliable Selection]
+A selection criterion is \emph{reliable} if 
+all tests that satisfy the selection criteria will produce the same test result.
+\end{df}
+
+\begin{df}[Valid Selection]
+The selection criterion is \emph{valid} if 
+for any error the selection will include a test that shows that error.
+\end{df}
+
+\begin{theorem}[Fundamental Theorem of Testing]
+There exists a reliable, valid selection criterion and a test data set satisfying it 
+such that that all errors in a program will be detected.
+\end{theorem}
+
+\noindent
+Unfortunately, \cite{Howden1976} demonstrated that
+there was no computable way in general to provide a reliable selection criterion.
+\gordon{review Howden, expand on this thought}
+
+In the absence of a computable, theoretically ideal, test selection criteria,
+research has focused on practical approaches to providing adequate coverage
+(\cite{ZhuHallMay1997}).
+As stated earlier, the complementary goals of testing are to find errors
+but also to create confidence that a successful test implies the program is correct.
+Confidence is intangible and difficult to quantify,
+but in general a diversity of evidence positively contributes to it.
+This is supported by  \cite{Cartwright1981}:
+
+\begin{quote}
+A sophisticated formal testing system should ... 
+show that the generated data is sufficiently diverse to 
+establish that the program is almost certainly correct.
+\end{quote}
+
+There are many approaches to selecting test data sets,
+and many approaches to evaluating those selection criteria.
+\cite{WeyukerEtal1991} provides a survey of test selection criteria,
+with a comparison of cost and effectiveness of different approaches.
+\cite{ZhuHallMay1997} presents a survey of 
+\emph{test selection adequacy criteria},
+which determine the adequacy of a selection criterion 
+with respect to a particular specification, implementation or interface.
+In the absence of a guaranteed approach to constructing a representative test,
+this is an active area of research.
+
+\subsection{Partitioning}
+One approach to strengthening the claim that 
+a test selection criterion is adequate
+is to partition the possible test cases into ``similar'' groups,
+and then select representatives from each part for the test.
+The expectation is that if there is an error in the program,
+it will be exhibited over many related test cases.
+If the test cases are grouped carefully,
+testing the representatives should expose any errors,
+or at least provide a higher degree of confidence that any errors have been found.
+
+For example, one common approach to test case selection is
+for an expert to define classes of \emph{standard uses} of a system,
+and unusual situations that are expected to be problematic.
+Test cases are the selected from each of these classes,
+with the sample allocation (percentage of test cases per class)
+reflecting the complexity and perceived risk.
+This approach is commonly used in commercial software development,
+and in particular for systems with a substantial amount of user interaction.
+\gordon{citation}
+The software engineering technique of use-cases \gordon{citation} is 
+a popular form of this type of usage partitioning.
+This sort of analysis is characterized by relatively high development costs,
+because of the human expertise involved to create each test case,
+but can result in an efficient test set with a small number of high value test cases.
+It is also limited by the human ability to comprehend complex systems,
+even when supported by tools and methodologies,
+as noted in \cite{HamletTaylor1990}:
+\begin{quote}
+Quantitative results about partition testing are counterintuitive because
+our intuition is untrained in confidence testing.
+To guarantee high confidence in even medium-scale software requires very large test sets ....
+and for this situation our intuition fails.
+\end{quote}
+
+Another approach to partitioning is to group the test cases
+strictly on the values as terms, i.e. the syntax of the input case,
+without reference to the specification or implementation.
+\cite{ZhuHallMay1997}) refers to this as \emph{interface based} testing,
+but it is also referred to as \emph{type based} testing for 
+typed specifications (\cite{Hieronsetal2009}).
+Intuititvely, it would seem that ignoring 
+both the semantics of the specification and 
+the information contained in the implementation
+would result in an inferior test set.
+This approach, however, is more amenable
+to automated test case generation
+and can be used to create much larger test sets
+than more sophisticated partitioning strategies
+\emph{relative to the cost}.
+The cost of these approaches are weighted more heavily to system resources
+than to human developer time, which is generally preferable.
+Large test sets using selection criterion that are unbiased by
+an interpretation of the specification or a particular implementation,
+such as random test case selection,
+have been shown through empirical studies to be as good as
+more rigorously defined partition based tests 
+(\cite{DuranNtafos1981}, \cite{HamletTaylor1990}).
+
+When an input variable takes on heterogeneous values,
+it may be appropriate to partition those values into like groups,
+and then select samples according to the importance of those groups.
+For example,
+the special values |Nan, Infty, NInfty| etc. of the IEEE floating point types
+are likely to expose different errors than regular numbers;
+similarly, values with extreme exponents might
+expose different errors than those with extreme mantissas.
+If a data type has some sort of internal ``type'' value,
+such as a record in a personnel data base that is either a ``manager'',
+``employee'' or ''contractor'',
+it may make sense to partition the domain to ensure each is sampled.
+
+\subsection{Infinitely Large Test Domains}
+One of the significant challenges of software testing
+is that specifications often describe infinitely many possible inputs,
+such as arbitrarily large integers or recursive data structure of arbitrary size.
+Any feasible test must include only a finite number of elements
+in its sampling frame.
+Furthermore, a ``real'' system cannot represent arbitrarily large elements,
+so there must be a limit on the complexity of the terms that can be tested.
+These problems arise frequently in Haskell programming and other functional languages
+in which recursive data structures are commonly used.
+
+In general, it is less costly to test smaller or simpler cases,
+and there are fewer of them.
+Fortunately, experience suggests that
+most errors in a program occur with relatively simple test cases,
+the \emph{small scope hypothesis}.
+This hypothesis assumes that
+there is some measure of \emph{complexity}
+that can be applied to the input values of a test,
+and that any errors are likely to occur in the terms of lower complexity.
+A natural extension of this heuristic is that
+there must be a level of complexity such that
+if the program is correct for all simpler inputs,
+it can be assumed to be correct for all possible terms.
+This is described formally in section (\ref{pbt})
+as a \emph{regularity} hypothesis (\ref{def:regularity}, \cite{BernotGaudelMarre1991}).
+Since for any finite test set and measure of complexity
+there must be a maximum complexity to the test set,
+a supporting hypothesis of this sort is generally necessary
+in the interpretation of a test verdict.
+
+The necessity of a regularity hypothesis to manage infinite property domains,
+and the benefit in focusing on less complex elements of the domain,
+suggest that an automated test generation strategy should incorporated a complexity measure
+to partition the test cases and determine sampling methodologies.
+\GC enumerative generators (chapter \ref{enumgen}) provide that complexity measure
+which can be used to select sampling methodologies (\ref{sec:sampling_theory}).

@@ -1,0 +1,500 @@
+\documentclass[11pt]{report}
+\usepackage{jrl_thesis}
+\usepackage{fancyheadings}
+\usepackage{natbib}
+\usepackage{setspace}               % this package defines the spacing of your thesis and should be included
+\usepackage[latin1]{inputenc}
+\usepackage{xspace} % to get better space control in macros
+
+
+% Math package and custom definitions
+\usepackage{amsmath}
+\usepackage{amsfonts} % all sorts of extra fonts including math ones
+\usepackage{amssymb} % some more symbols and fonts
+\usepackage{bbm}   % used forindicator function, replaces characteristic
+
+
+\include{mathdef}
+\include{testsys_macros}
+\newcommand{\ogf}[2]{\ensuremath{\sum_{{#2} = 0}^{\infty} {#1}_{#2} x^{#2}}}
+\newcommand{\ogfone}[2]{\ensuremath{\sum_{{#2} = 1}^{\infty} {#1}_{#2} x^{#2}}}
+
+\usepackage{tikz}
+\usepackage{pgf}
+\usetikzlibrary{arrows,shapes.geometric,shapes.misc,decorations,positioning}
+
+\usepackage[compact]{fancyvrb1}
+\DefineShortVerb{\|}
+\DefineVerbatimEnvironment{code}{Verbatim}{xleftmargin=1em,fontsize=\small}
+
+\usepackage{listings}
+\lstset{language=Haskell, basicstyle=\small, stringstyle=\ttfamily}
+
+%\usetikzlibrary{arrows,shapes.geometric,shapes.misc,decorations,positioning}
+\newcommand{\minibox}[2]{\begin{minipage}[c]{#1}\begin{center}{#2}\end{center}\end{minipage}}
+
+\usepackage{url} % wrap urls to avoid bad formatting
+
+%
+%
+%% Use the listings package for the code display; these are the options suggested by the Haskell Wiki
+%\usepackage{listings}
+%\lstloadlanguages{Haskell}
+%\lstnewenvironment{code}
+%    {\lstset{}%
+%      \csname lst@SetFirstLabel\endcsname}
+%    {\csname lst@SaveFirstLabel\endcsname}
+%    \lstset{
+%      basicstyle=\small\ttfamily,
+%      flexiblecolumns=false,
+%      basewidth={0.5em,0.45em},
+%      literate={+}{{$+$}}1 {/}{{$/$}}1 {*}{{$*$}}1 {=}{{$=$}}1
+%               {>}{{$>$}}1 {<}{{$<$}}1 {\\}{{$\lambda$}}1
+%               {\\\\}{{\char`\\\char`\\}}1
+%               {->}{{$\rightarrow$}}2 {>=}{{$\geq$}}2 {<-}{{$\leftarrow$}}2
+%               {<=}{{$\leq$}}2 {=>}{{$\Rightarrow$}}2 
+%               {\ .}{{$\circ$}}2 {\ .\ }{{$\circ$}}2
+%               {>>}{{>>}}2 {>>=}{{>>=}}2
+%               {|}{{$\mid$}}1               
+%    }
+
+
+% Include the comment macros
+\newcommand{\gordon}[1]{{\textit{Gordon says:} #1 \textit{(???)}}}
+\newcommand{\jacques}[1]{{\textit{Jacques says:} #1 \textit{(???)}}}
+
+\newcommand{\pbt}{\textit{PBT}\xspace}
+\newcommand{\pbting}{\textit{PB testing}\xspace}
+\newcommand{\algdt}{\textit{AlgDT}\xspace}
+\newcommand{\typecon}{\ensuremath{\mathbb{T}}}
+\newcommand{\role}{r\^{o}le}
+\newcommand{\GC}{\textit{GenCheck}\xspace}
+\newcommand{\QC}{\textit{QuickCheck}\xspace}
+\newcommand{\SC}{\textit{SmallCheck}\xspace}
+\newcommand{\LSC}{\textit{Lazy SmallCheck}\xspace}
+\newcommand{\EC}{\textit{EasyCheck}\xspace}
+\newcommand{\GAST}{\textit{GAST}\xspace}
+\newcommand{\HOLTG}{\textit{HOL-TESTGEN}\xspace}
+\newcommand{\FEAT}{\textit{FEAT}\xspace}
+\newcommand{\DAISTS}{\textit{DAISTS}\xspace}
+
+\DeclareMathOperator{\nil}{nil}
+\DeclareMathOperator{\cons}{cons}
+
+\newcommand{\lblhat}[2]{\ensuremath{\stackrel{#2}{#1}}}
+
+\input{speciesmacros} % all of the nomenclature for species and categories
+
+
+%% End of configuration information
+
+\include{definitions}               % your information goes here
+
+\begin{document}
+
+%\beforepreface                      % command to create the parts of your thesis that come before the preface like title and etc.
+%
+%  \input{dedication}
+%  \input{abstract}
+%  \input{acknowledgements}
+%  \input{notation}
+%
+\afterpreface                      % command to create the parts of your thesis that come after your preface like contents and etc.
+
+%------------------------------------------------------------------------------
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{Introduction}
+\input {introduction}                  % property based testing, quickcheck et al
+
+
+%------------------------------------------------------------------------------
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{Property Based Testing}\label{chp:propertytesting}
+
+Software testing can be seen as a sequence of experiments
+designed to test the \emph{hypothesis} that
+a software system works correctly.
+While this is a special kind of experiment,
+the general scientific method can still be considered
+to provide the foundations for the design and interpretation of software tests.
+Scientific methods, and in particular statistical sampling theory,
+can provide insights and guidance to developing
+test case selection strategies and 
+the interpretation of test results.
+
+This chapter establishes a conceptual framework
+for the discussion of property based testing systems
+and test case selection strategies.
+It provides formal definitions for properties, property based testing,
+and the interpretation of test results.
+The relationship between general experiments,
+general software testing and  property based testing
+is explored to provide the context for
+the use of formal sampling methods in test case selection.
+Finally a formal test hypothesis is presented that defines
+the assumptions necessary for accepting a software artifact as correct
+given only a finite set of test cases.
+
+\section{Testing in Science and Software}
+Experiments provide \emph{empirical} evidence
+supporting or refuting the correctness of a theoretical model of a system \cite{Holt1982} .
+A test is a form of experiment in which 
+a \emph{test hypothesis} is formed from the model,
+relating antecedent variables (known values) to 
+consequent variables (results).
+The system is observed in conditions representing
+a variety of inputs (antecedent values),
+and compared to the predicted output (consequent) variables.
+The hypothesis is \emph{testable} if it is possible to 
+either control or measure the conditions represented by the antecedent variables,
+and observe and compare those represented by the predicted consequent variables.
+The comparison identifies each observation as a supporting or refuting result,
+forming the \emph{verdict} of the experiment.
+This empirical evidence is combined with 
+assumptions about the validity of the experiment
+to form an argument for or against the test hypothesis.
+
+The collection of all combinations of the antecedent variables
+allowed by the model is called the population of the system.
+Theoretical models are powerful in the sense that
+they easily represent infinitely many conditions, 
+including conditions that are difficult or impossible to achieve in the real world.
+Real world experiments are constrained by 
+what is possible and the resources available to conduct them,
+and so constrain the conditions that can be observed and compared.
+When it is infeasible to test 
+all possible conditions to which the test hypothesis may be applied,
+a \emph{sample} of the \emph{population} is selected instead.
+
+The results of the experiment will be extrapolated to untested values,
+so the conditions tested should be \emph{representative} of those covered by the hypothesis.
+The choice of test cases must also minimize the impact of \emph{confounding} factors,
+those aspects of the real system that are 
+not anticipated by the model and not controlled as part of the experiment.
+The comparison must be \emph{valid} and \emph{unbiased},
+meaning that it will correctly identify 
+observations that refute the hypothesis (no false positives),
+but correctly identify acceptable observations (no false negatives).
+
+The interpretation of experimental evidence in science
+requires careful scrutiny of both the results and 
+these assumptions about the validity of the experiment,
+called the \emph{supporting hypotheses} of the experiment.
+In general, adding more test cases 
+increases the credibility of the experiment but also the cost,
+so test case selection must balance these two factors
+by both accurately reflecting the real world
+and selecting cases relevant to testing the predictions of the hypothesis (\cite{Holt1982}).
+
+A software test is a special case of an experiment
+but follows the same general structure.
+The software test hypothesis is that a software system behaves as specified,
+with the specification playing the \role\ of the underlying theory.
+The specified (predicted) and observed behaviors of an actual instance of the system
+(an installed program running on a suitable computing device)
+are compared over a collection of inputs.
+Each comparison is a Boolean valued \emph{test result},
+and the \emph{verdict} of the test is the conjunction of the results,
+indicating whether the test supports or refutes the test hypothesis.
+If the comparison is computable,
+this emph{oracle} can be incorporated into a \emph{test program} that
+computes the verdict of the test,
+given a finite collection of test cases.
+If the observed behavior is ``close enough'' to the predicted results, i.e. there are no errors,
+the verdict of the test is that the system is a correct implementation of the specification.
+Assuming that the test is correctly implemented and
+the tested inputs are sufficiently diverse to represent the actual usage of the system,
+the program is accepted as correct.
+
+There are different kinds of specified behaviors,
+including subjective evaluation (e.g. ``attractive''or ``easily learned'')
+and measurements  (e.g. completion time, memory usage, physical device movement)
+which might require sophisticated observations and comparisons to validate.
+Only observable behaviors can be tested, 
+i.e. either the outputs of the system or some aspect of the behavior that can be measured.
+Fortunately for software engineers, 
+the specified behavior is often 
+just a relation over discrete input and output values
+that allows for reliable and automated comparisons,
+but the translation of these relations from the theoretical specificatino
+to the implementation can pose significant challenges.
+
+It must be possible to predict the system's behavior using the specification, 
+and then compare those to observed actual behaviors
+for the specification to be testable.
+This specification could consist of informal documents in a natural language,
+but these require human interpretation to establish predictions
+and to write or perform tests.
+A more rigorous approach is to define a \emph{formal} specification,
+based on formal language and system of reasoning
+to define the expected behaviors of the system.
+\cite{ZhuHallMay1997}  and \cite{Hieronsetal2009} present surveys of
+different classifications of formal specification languages
+and approaches to their validation.
+One common advantage of these formal specifications is that
+they support the creation of computable comparison functions,
+called \emph{oracles},
+necessary to create an automated test.
+
+The specification and implementation are entirely separate entities,
+with distinct collections of values and operations,
+i.e. they exist in distinct \emph{universes of discourse} \cite{boole_laws}.
+In order to compare the specification and implementation,
+there must be some translation, or mapping, between them.
+This is another advantage of formal specification languages:
+this translation can be rigorously and unambiguously defined,
+and in some cases automated by software tools.
+
+The remainder of this chapter will focus on
+how choices made in software test case selection and generation
+can improve the credibility of the interpretation of test results
+by directly addressing the supporting hypotheses of the assumption of correctness.
+We review the concept of a software test \emph{context},
+consisting of a test set, oracle and supporting hypotheses,
+and discuss common classes of these supporting hypotheses.
+We then review general sampling methodologies and
+identify how these are related to these standard hypotheses,
+with the goal of improving their subjective credibility.
+
+\section{Properties and Property Based Testing}\label{pbt}
+\input{pbt}
+
+\section{Test Case Selection}\label{swtest}
+\input{swtest}
+
+\section{Sampling Theory}\label{sec:sampling_theory}
+\input{sampling_theory}
+
+%------------------------------------------------------------------------------
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+
+\chapter{\pbt Systems}\label{pbtsystems}
+\input{pbtsystems}
+
+%------------------------------------------------------------------------------
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{Test Case Generators}\label{chp:testgen}
+
+The popularity of \QC and other sampling based \pbt systems (Chapter \ref{pbtsystems})
+suggests that sampling based automated test case generation
+is an area of some interest to the Haskell community.
+As defined earlier, 
+a property is a univariate Boolean valued function
+which must evaluate to true over its domain,
+and the \pbt system evaluates it over a sample of those values.
+Automatically generating that sample requires the ability to 
+select and construct values of the appropriate type
+to pass to the property function.
+These systems provide a \emph{data generation language} to 
+create test case generator functions (generators)
+which are used to select, instantiate and sequence the evaluation of test cases.
+
+The systems reviewed in Chapter \ref{pbtsystems}  
+provide generators based on a single sampling method
+(\FEAT allows three different kinds of sampling, but each generator is restricted to a single method).
+More sophisticated test generation strategies
+would stratify a property's domain and use different sampling methods for the different strata
+(as discussed in section \ref{sec:sampling_theory}).
+While this can be achieved by conducting separate tests using different \pbt systems,
+this makes the testing process more complicated.
+It also precludes the use of hybrid sampling strategies
+in which different components of an algebraic data type are 
+sampled using different methods.
+
+This chapter provides general definitions for generators,
+and explores the relationship between generators and Haskell types.
+This approach supports the development of 
+sophisticated type-independent test generation strategies,
+using multiple sampling methods over different partitions of a property's domain,
+including hybrid sampling methods over composite structures.
+Properties implemented in Haskell will be used as concrete examples,
+with a focus on sampling \emph{regular recursive algebraic data types} 
+(\cite{Okasaki1998}, but called uniformly recursive there)
+stratified by complexity measures.
+Chapter \ref{chp:enumgen} will follow with a comprehensive and efficient algorithm for constructing
+sampling generators for several significant sampling methods,
+as implemented in the \GC \pbt framework (Chapter \ref{chap:GCimplement}).
+
+\section{Haskell Types}\label{algdatatype}
+\input{algdatatype}
+
+\section{Generators for Finitely Populated Types}\label{adtgen}
+\input{generators}
+
+\section{Complexity Ranked Generators}\label{complexgen}
+\input{complexgen}
+
+\section{Sampling in Generators}
+\input{samplegen}
+
+
+
+
+%------------------------------------------------------------------------------
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{Enumerative Generators}\label{chp:enumgen}
+
+An enumeration of a type provides a count of the values
+and an injective selector function to retreive each of those values.
+Certain simple Haskell types, such as |Int| and |Char|, 
+are already enumerated through Haskell's |Enum| and |Bounded| classes,
+and we show here how these can be used to create generators for those types.
+In addition, we provide algortihms to create ranked enumerations of 
+infinitely populated algebraic data types and create generators by
+applying sampling methods directly to an index over those types.
+This approach abstracts the sampling methods from the underlying type,
+which is beneficial both in the implementation of test generators
+and the assessment of sampling strategies.
+A generator based on an enumeration of a type will be called an \emph{enumerative generator},
+and these play an important role in \GC property based testing.
+
+The existence of such complexity ranked enumerations,
+and efficent algorithms for their use,
+was established in \cite{FlSaZi89b}, \cite{FlajoletZC94}, \cite{FlSa95} and \cite{FlajoletSedgewick2009} 
+through the mathematics of \emph{combinatorial constructions}.
+These works provide the conditions for a system of combinatorial constructions to be well-defined,
+and a calculus to determine the ordinary generating function to count the number of constructions
+for any given number of \emph{atoms} (terminal nodes in a structure).
+A model of mutually (regular) recursive Haskell algebraic data types
+as systems of polynomial combinatorial constructions is presented,
+along with a discussion of the choices made to ensure 
+all valid Haskell data types modelled this way are allowed.
+It will be shown that such enumerations can be based on the type's definition and
+can also be implemented using generic programming techniques or Template Haskell.
+This allows \GC to provide default enumerative generators,
+using sampling methods defined over indices,
+for all regularly recursive Haskell data types.
+
+\section{Enumerative Generators}\label{sec:enumerations}
+\input{combenumgen}
+
+\section{Combinatorial Constructions}\label{sec:combconstructs}
+\input{combconstructs}
+
+\section{Enumerating Haskell Algebraic Data Types}
+\input{enumhaskadt}
+
+\section{Algorithms for Enumeration}\label{sec:iterenumalg}
+\input{iterenum}
+
+\section{Substitution vs. Expanded Enumeration}
+\input{samplenum}
+
+
+\section{\FEAT Enumerations}
+
+There are a number of differences between the \FEAT (\cite{Duregard2012} ) enumerations
+and those described in this chapter:
+
+\begin{enumerate}
+\item \FEAT uses the number of constructors embedded in the term as it's size,
+instead of the number of atoms in the construct.
+\item the enumeration is over concrete terms, meaning that all element types are incorporated into the overall enumeration
+as opposed to supporting post enumeration substitution;
+\item  a single sampling method is applied to the enumeration to create the test data set
+(although the test can be repeated independently with each of the three supported sampling methods);
+\item \FEAT does not support explicit substitution of independently sampled values into structures;
+\item a different enumeration algebra is supported - 
+they explicitly discuss \cite{FlSa95} and their reasons for not using this approach.
+\end{enumerate}
+
+Their approach, while providing a single source of random, uniform and exhaustive test case generators,
+does not allow for more complicated hybrid sampling methodologies
+nor for specialized generators for specific domains (e.g. a ``person name generator'' or ``physical address generator'')
+as an alternate sampling methodology.
+The main focus of \FEAT was to provide computationally efficient enumerations,
+so further analysis of their enumerations is left to the chapter \ref{chap:GCimplement}.
+\gordon{I better make sure I actually did this.}
+
+One interesting detail is that the issue of epsilon-freeness in the theory of combinatorial structures
+presents itself as the need to assign an explicit cost to recursion in the calculation of term size
+(in the paper this is referred to as the part identifier).
+In their enumeration part cost function (equivalent to rank in this thesis),
+constants (called singletons) are given a cost of $0$.
+The authors point to a representation of the natural numbers
+
+\begin{code}
+data Nat = Z | S Nat
+\end{code}
+
+and note that without an explicit cost for each recursive call,
+all of the natural numbers would end up with the same cost,
+thus violating the requirement that each part of the population must be finite.
+This specification, as stated, cannot be represented in the theory of combinatorial constructions,
+but must instead be altered so |S| is a product :
+
+$$ \spec{N} = \specI \splus (\spec{S} \sprod \spec{N}) $$
+
+where $\specI, \spec{S}$ are constants with weight $1$.
+In effect, the natural numbers are modelled as lists of constants,
+and the need to provide a weight of $1$ to the $\spec{S}$ constant to keep the structure epsilon free
+is equivalent to the need for the recursion cost in the \FEAT enumeration.
+
+
+
+
+%------------------------------------------------------------------------------
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{Requirements for Property Based Testing Systems}\label{chap:requirements}
+
+\input{requirements}
+
+%\section{Definitions}
+%\input{formal_pbt}
+%
+%\section{Sampling and Test Strategies}
+%\input{formal_strategy}
+
+%
+
+
+%------------------------------------------------------------------------------
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{\GC Implementation}\label{chap:source}
+\input{literate-haskell}
+
+The framework will be explained w.r.t. the requirements from the previous chapter,
+from the software engineering perspective not the theoretical perspective.
+
+The \GC tutorials have been included as an appendix to this document.
+It may be valuable for the reader to go through the tutorials first to get a
+friendly user level view of the package before reading this section.
+
+% The tutorial needs to go here, but it can't be linked from GitHub so I'll copy it over later.
+\appendix
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{\GC Tutorials}\label{chap:tutorial}
+%%\input{tutorial/Tutorial}               % you can include your appendix if you have any!
+%
+
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\chapter{Extra Material}\label{chap:tutorial}
+\gordon{Extra material looking for a home}
+
+\section{Comments about strategies}
+\input{samplestrat}
+
+\bibliographystyle{natbib}
+\bibliography{test_ref,species-refs,genericprog-refs}      % your list of references
+
+\label{NumDocumentPages}
+
+\end{document}

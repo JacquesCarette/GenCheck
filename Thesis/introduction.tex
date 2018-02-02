@@ -1,0 +1,574 @@
+%\chapter{ Introduction }
+
+Testing is, at the very least, a necessary evil 
+in the development of software and software intensive systems.
+Frequently treated as an art as opposed to a science,
+software testing might appear to be the ugly cousin to theorem proving,
+lacking the elegance of mathematical proofs and
+offering only to manage the risk of failure, not eliminate it.
+Theorem proving, however, exists only the realm of mathematical abstractions,
+and cannot address the real world in which the actual program will be functioning,
+a world fraught with unexpected and pernicious challenges.
+If there is to be any meaningful claim that
+the software solves the \emph{real world} problem it was invented to address,
+it will be necessary to invoke an installed instance of the program 
+on an actual computing device under the conditions that it is expected to operate:
+in other words it must be tested.
+Perhaps the best summary of the relationship between theorem proving and testing 
+is provided by Donald Knuth (\cite{KnuthProvedNotTested1977}):
+
+\begin{quote}
+Beware of bugs in the above code; I have only proved it correct, not tried it.
+\end{quote}
+
+\noindent
+Since testing is a necessity, 
+it behooves practitioners who appreciate the elegance of theorem proving
+to attempt to apply the same rigor and discipline to the testing process.
+
+Driven by time and resource limitations
+in the face of the staggering complexity of modern software systems,
+software practitioners naturally look to software tools
+to assist, manage and automate the testing process.
+One area of particular interest to programmers is 
+software that automatically generates and evaluates test cases.
+The hope is that these tools would generate large numbers of test cases
+with little effort on the part of a test developer, 
+and lead to both quicker and more thorough testing.
+
+Property based testing is a powerful form of unit testing that is
+particularly well suited to automatic test case generation for functional programming languages
+such as Haskell (\cite{Haskell98}, \cite{Haskell2010}),
+Erlang (\cite{armstrong1993Erlang}, \url{http://erlang.org/} ) and OCaml(\url{http://ocaml.org/})
+(\cite{Fink1997}, \cite{Papadakis2011}, \cite{OSullivan2008}).
+A number of software packages supporting
+automated test case generation for property based testing have been released,
+providing different approaches to selecting and generating test cases.
+While test developers benefit from having
+these different test case selection strategies,
+it does raise a number of questions:
+\begin{itemize}
+\item Which test selection strategy is best for this test?
+\item Are there other test selection strategies to consider?
+\item Will the selected test cases provide a good trade off between uncovering errors and the cost of running the test?
+\item Perhaps most importantly,
+is it really necessary to have a separate software package
+for each test selection strategy?
+\end{itemize}
+
+The \GC project was initiated to 
+support the research and development of property based test case generation
+by establishing a theoretical basis for test case selection and
+providing a single, extensible, software package that 
+would support a wide variety of such strategies.
+It explores the relationship between test case generation,
+formal \emph{sampling theory} (\cite{Stuart1968}, \cite{Cochran1977}),
+the complexity of test terms,
+and combinatorial enumerations as the basis for sampling Haskell data types.
+A modular framework with independent interfaces for 
+evaluation,  automated test case generation and reporting
+allows these strategies to be used for 
+projects of varying nature and complexity.
+The intent of this work is not to provide a single canonical test case selection algorithm,
+but instead to act as the foundation for research into this area
+and provide a pragmatic tool for automatic test case generation for \pbt.
+
+\section{Property Based Testing}
+A property is computable boolean valued function,
+implemented using the module(s) to be tested,
+implementing an equivalence relationship  from the module's specification.
+A \emph{property based test}(\pbt)%
+\footnote{Not to be confused with \emph{property testing}, \cite{Ron00}.}
+consists of evaluating the property function
+over a subset of its allowable inputs (test cases).
+If the property does not evaluate to true for one or more of the allowable inputs,
+then the module is incorrect.
+Typically a specification will consist of a number of such equivalence relationships,
+with each relationship being implemented as a distinct property and evaluated independently.
+
+%Another question that is raised is the relationship between
+%the generation of test cases and their evaluation for the test verdict.
+%\QC, \SC and the other published \pbt packages 
+%(chapter \ref{pbtsystems} will present a detailed critique)
+%sequentially generate and evaluate test cases,
+%terminating when an error (or a fixed number of errors) is found.
+%While a single developer unit testing a simple module may be satisfied with this approach,
+%a more sophisticated software project might 
+%execute test cases in parallel over multiple cores and computers,
+%and require a full report of all of the test results for analysis.
+%The nature and complexity of a software projects differ widely,
+%so it is unlikely that any one approach for evaluating and reporting will suit all needs.
+%Could a test system provide flexibility in 
+%the scheduling, evaluation and reporting of test results
+%while offering the same kinds of test case generation provided in these packages?
+
+The first step in defining a property based test is
+to identify the properties of the specification.
+As an example, consider an algebraic specification for polymorphic lists
+equipped with constructors (nil and cons) and a concatenation operation
+that is defined by the equations of the specification.
+
+\begin{figure*}
+%\fbox {
+\begin{minipage}[t]{.3\linewidth}
+Operators:
+\begin{align*}
+& \nil : \specL_{\alpha} \\
+& \cons : \alpha \sprod \specL_{\alpha} \mapsto \specL_{\alpha} \\
+& \concat : (\specL_{\alpha} \sprod \specL_{\alpha}) \mapsto \specL_{\alpha} \\
+& =_{\specL_{\alpha}} : (\specL_{\alpha} \sprod \specL_{\alpha}) \mapsto \boolean \\
+& (\text{assumes} =_{\alpha} \text{defined}).
+\end{align*}
+\end{minipage}
+\begin{minipage}[t]{.2\linewidth}
+\end{minipage}
+\begin{minipage}[t]{.5\linewidth}
+Equations:
+\begin{align*}
+&\forall x \in \specL_{\alpha}.x \concat \nil =_{\specL_{\alpha}} x\\
+&\forall x \in \specL_{\alpha}.\nil \concat x =_{\specL_{\alpha}} x\\
+&\forall x, y, z \in \specL_{\alpha}. 
+    ((x \concat y) \concat z) =_{\specL_{\alpha}} ( x \concat (y \concat z)) \\
+&\forall a \in \alpha. \forall x,y \in \specL_{\alpha}. 
+    (\cons (a, x \concat y)) =_{\specL_{\alpha}} (\cons (a, x) \concat y)
+\end{align*}
+\end{minipage}
+%} % end xbox
+\caption[Algebraic specification of a list]
+{An algebraic specification of a list with concatenation.}
+\label{intro_spec_ex}
+\end{figure*}
+
+An implementation of this specification in Haskell
+would consist of a module with a type constructor for the new list structure,
+and a binary operator over that type to implement concatenation.
+An example of such an implementation is provided below%
+\footnote{This concatenation operator will conflict with that of the Prelude when compiled,
+so either the prelude version must be excluded or the operator renamed}.
+A traditional approach to unit testing the concatenate operator would have
+the test developer to choose pairs of lists
+and compare the result of using the concatenation operator in the module
+to the expected result.
+This would require the test developer to:
+\begin{itemize}
+\item select pairs of lists representing a variety of likely operands
+\item determine the concatenation of each pair \emph{without} using the module being tested,
+\item encode the test pairs and resulting concatenations correctly in a test program,
+\item compare the concatenation produced by the module to the prediction
+and report any discrepancies as errors
+\end{itemize}
+
+\begin{figure*}
+\begin{lstlisting}
+module List (List(), (++)) where
+
+data List a = Nil | Cons a (List a)
+  deriving Show
+
+(++) :: List a -> List a -> List a
+(++) (xs) (Nil) = xs
+(++) (Nil) ys = ys
+(++) (Cons x xs) ys = Cons x (xs ++ ys)
+\end{lstlisting}
+\caption{Implementation of polymorphic list concatenation}
+\label{intro_spec_impl}
+\end{figure*}
+
+Consider two such test cases,
+with manually derived results:
+\begin{align*}
+\cons(1, \cons (2, \nil)) \concat \nil & = \cons(1, \cons (2, \nil))\\
+\cons(1, \cons (2, \nil)) \concat \cons(3, \cons (4, \nil)) & = \cons(1, \cons (2, \cons(3, \cons (4, \nil))))
+\end{align*}
+\noindent
+These inputs and results must then be coded into a test program
+and compared to the actual result for the module:
+\begin{lstlisting}
+import List
+x = Cons 1 (Cons 2 Nil)
+y = Cons 3 (Cons 4 Nil)
+xy = Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
+
+test :: Boolean
+test =   ( x ++ Nil ) == x  && ( Nil ++ x ) == x && ( x ++ y ) == xy
+\end{lstlisting}
+
+\noindent
+Determining the predicted result of an operation
+without using the implementation to be tested,
+and manually encoding the inputs and expected results,
+is both arduous and error prone.
+
+\pbt generalizes this approach by encoding the specified relationships
+and testing for internal consistency,
+without explicitly knowing the results of an operation.
+Here the list specification equations are encoded as Haskell properties,
+with the specification variables as parameters:
+
+\begin{figure*}
+\begin{lstlisting}
+import List
+
+prop_leftunit, prop_rightunit :: List a -> Bool
+prop_leftunit    xs = (Nil ++ xs) == xs
+prop_rightunit xs = (xs ++ Nil) == xs
+
+prop_assoc_list :: (List a, List a, List a) -> Bool
+prop_assoc_list (xs, ys, zs) = (xs ++ (ys ++ zs)) = ((x ++ ys) ++ zs)
+
+prop_assoc_cons :: (a, List a, List a) -> Bool
+prop_assoc_cons (x, ys, zs) = (Cons x (ys ++ zs)) = ((Cons x ys) ++ zs)
+\end{lstlisting}
+\caption{Haskell properties of list concatenation.}
+\label{intro_haskprop_ex}
+\end{figure*}
+
+\noindent
+A test case for these properties is then an input of the appropriate type,
+and a test is the conjugate of the Boolean result of each of these property function evaluations
+over a collection of such test cases.
+Removing the need to supply an explicit result for a test case
+makes test case generation much simpler as only the arguments to the property function must be generated.
+
+\section {Automated Test Case Generation for \pbt}
+
+The promise of software tools providing comprehensive, inexpensive testing
+by automatically generating test cases is a compelling one.
+A tool for automating property based tests has several functions :
+
+\begin{enumerate}
+\item generate (or otherwise acquire) test cases
+\item evaluate the property over test cases until all are successful or at least one fails
+\item return the verdict of the test and (optionally) report the results of the test cases evaluations
+\end{enumerate}
+
+\subsection{Test Case Selection and Generation}
+In a traditional software testing situation, 
+\emph{domain knowledge} experts select 
+a relatively small number of test cases that are representative of
+the \emph{standard uses} of the program,
+and possibly some that are expected to pose additional risks.
+Identifying classes of system behaviors and representative test cases from those classes
+is a \emph{heuristic} test strategy that creates an efficient test as each case is meaningful.
+It is also time consuming, requires significant expertise on the part of the test developers,
+and is error prone as unexpected behaviors are unlikely to be addressed.
+
+The definition of the property function
+allows test case generation to be based on
+the syntactic definition of the argument types,
+instead of the semantics of the specification
+or the implementation of the module to be tested.
+The automated test system partitions the property argument values
+and select representatives from each partition,
+based solely on the data type of the argument.
+This approach discards any a priori knowledge of the system to be tested,
+but compensates by greatly reducing the cost of generating more test cases.
+These techniques are particularly useful in finding
+errors relating to the implementation or an ``irrational'' use of the system,
+which might not occur to a human test developer,
+and for testing complicated modules which might defy domain expertise.
+While one could argue in favor of either approach,
+it is very reasonable to decide that they are instead complementary
+and should both be supported in any practical test framework
+(although this work will focus almost exclusivley on the generation of test cases using syntactic strategies).
+
+Automated test generators are able to use syntactic strategies
+generate very large numbers of test cases inexpensively,
+reducing the time to develop a test,
+but at the expense of evaluation costs.
+This creates the essential compromise of testing:
+there must be enough test cases to create confidence,
+but the cost of the test must be reasonable given the value of the system.
+Many more test cases may be needed, however,
+to achieve the same level of confidence as
+a test suite developed by a human expert
+who will include fewer redundant test cases based on their experience.
+The strategies that define these classes and
+the number and complexity of test cases
+are a critical characteristic of a test system.
+
+There are a number of existing \pbt packages available to the Haskell community
+using this syntactic approach to test case generation but 
+offering different approaches to test case selection.
+For the most part, the focus of these packages is on how to select test cases
+from recursive algebraic data types,
+so the complexity of the input values is often referred to as the ``size''.
+\begin{itemize}
+\item \QC generates a stream of random test cases,
+initially favoring simpler test cases (smaller data structures) and then allowing more complex ones;
+\item \SC exhaustively generates all structures up to a set complexity (``size''),
+selecting scalar values from a small range;
+\item \EC (\cite{EasyCheck2008}) generates a mixture of
+simple and complex data structures to ensure small test suites contain a variety of complexity.
+\item \FEAT(\cite{Duregard2012}) includes both of the above but
+also allows a selection over uniform intervals (discussed further in \ref{}).
+\end{itemize}
+\noindent
+Each of these packages partitions the property's domain (possible input values)
+and then selects a representative set of the cases to evaluate.
+The interface to each of these packages is very similar,
+allowing testers to move back and forth between them,
+to use the different test strategies as needed.
+This then poses a dilema for the tester:
+which test selection strategies will provide
+the highest degree of confidence
+relative to the investment in generating and running the tests?
+How are these different packages and in particular their test selection criteria 
+to be compared and judged?
+
+\subsection{Sampling Strategies}
+In the broader scientific community,
+this kind of partitioning and selection of elements from a population,
+without human expertise guiding or biasing the selection process,
+are considered forms of \emph{sampling}.
+Sampling theory (\cite{Stuart1968}, \cite{Cochran1977}) is 
+the branch of statistics that studies
+the selection of a representative sample of elements 
+that can be tested to draw conclusions about a large population.
+
+There are two concepts in particular that are valuable in discussing test case generation:
+
+\begin{enumerate}
+\item A sampling methodology is an unblased approach to selecting members of a group
+\item Stratification is the partitioning of a population into similarly behaving groups or classes,
+each of which should be sampled independently, and possibly using distinct sampling methodologies
+\end{enumerate}
+
+\noindent
+Stratifying a population and then selecting different sampling methodologies
+is a useful technique for managing the pragmatic aspects of testing hypotheses,
+and in particular is useful when different parts of a population are much more costly to sample.
+For example, consider a module managing height balanced trees,
+and a \pbt of the ``node insertion'' capabilities.
+It would be desirable to exhaustively test the properties 
+over inserting a node into all ``small'' trees (say up to depth of 4),
+and then test a small sample of larger trees, perhaps with a few being extremely large.
+This suggests that the population of height binary balanced trees be partitioned into small and large,
+with all small trees (exhaustive sampling) and a random sample of large trees
+being included in the test suite.
+
+Statistics and probability theory are used to provide 
+guidance for selection strategies and 
+estimates of the bias and accuracy of tests over selected samples.
+While many of the assumptions regularly used in statistics 
+are not applicable to software testing,
+we propose that the standard concepts behind sampling methods 
+provide a starting point for structuring and evaluating test case selection strategies.
+In particular, we would propose that test systems should provide
+stratified test strategies to allow different sampling strategies for different classes of test cases,
+the discussion of which will be a significant focus of this document.
+
+The choice of test case selection strategies is 
+a subjective but important area of ongoing research.
+Existing \pbt packages mostly generate test cases based on a single sampling method
+\footnote{\FEAT being the exception as discussed in the next section},
+and since they tightly couple test case generation, evaluation and reporting,
+they cannot easily be adapted to other sampling methods.
+Factors such as stopping conditions,
+sequencing of the test cases,
+and the presentation of the test result details
+are all influenced by the sampling choice.
+This both hampers the comparison of the different methodolgies
+and is an impediment to the practitioner wishing to use different test strategies
+when validating a module.
+We would propose that a proper evaluation of sampling strategies can only be carried out
+using a platform that supports stratification of the test domain,
+and a variety of sampling methodologies including allowing new methodologies to be defined,
+and allows different sampling methodologies within different parts of the domain.
+
+\section{Enumerative Generators}
+
+Sampling methods generally require some sort of organization of the values being sampled,
+in this case is the allowable inputs for the property being tested.
+Ideally there would be a single interface / approach that would support 
+all of the standard sampling methods over
+any of the data types likely to be arguments for the properties.
+For Haskell, this includes recursively defined algebraic data types,
+which are particularly challenging to sample as the represent
+infinitely many values of arbitrary complexity.
+
+One of the major contributions of this thesis is
+demonstrating that \emph{combinatorial enumerations} (\cite{FlSa95}) provide 
+a canonical organization suitable for standard sampling methods
+of the most common Haskell types including recursive and mutually recursive algebraic data types..
+An enumeration  of a data type provides 
+the number of values represented
+and a selection function based on an index over those values.
+Sampling methods can then be generalized to apply to the index,
+creating a set of arguments to be mapped through the selection function to obtain the selected values.
+A family of enumerations, further indexed (or ranked) by the complexity of the terms,
+allows stratified sampling of (mutually) recursive algebraic types%
+\footnote{Only regular recursive types are supported, as discussed in \ref{chp:testgen}}.
+A generalized sampling method is combined with
+the combinatorial enumeration of a data type to create an
+\emph{enumerative sampling generator} for automating test case generation
+(chapter \ref{chp:enumgen}).
+
+The development of ranked enumerations of algebraic data types
+is based on the \emph{combinatorial structures} of \cite{FlajoletSedgewick2009},
+providing a strong theoretical basis for the existence of these enumerations.
+Additional works in this area (\cite{FlSaZi91}, \cite{FlajoletZC94}, \cite{FlSa95})
+direct the details of their implementation
+and support the efficiency of the algorithms.
+This theory also extends beyond algebraic data types to
+sets (bags), cycles, restricted size constructions,
+suggesting future research in testing a broader family of data structures
+than can currently be specified in languages such as Haskell.
+The development of these enumerative generators was a primary motivation
+behind the development of the \GC framework.
+
+\section{The \GC Framework}
+
+The proliferation of \QC like \pbt frameworks
+suggest that while automatically generating test cases
+based on a data type declaration is a popular approach,
+no one test case selection strategy is going to be entirely satisfactory.
+In addition,
+the level of concurrency in test evaluation,
+test termination conditions and the desired reporting
+are all dependent on the project context
+\footnote{but independent of selection method}.
+Given that the complexity of software development projects
+may vary from simple, single data type, single module algebras to
+complex multi-programmer, multiple platform, multi-user systems,
+it is hard to imagine a single approach to evaluating and reporting test results
+could be optimal in all situations in which
+automated test case generation for \pbt will be used.
+The goal of this research is provide  a modular, flexible platform for developing \pbt programs,
+providing standard interfaces and a library of components for 
+test case generation, property evaluation and reporting results,
+instead of cloning and modifying testing software for each new situation.
+
+The \GC framework (chapter \ref{chap:GCimplement}) provides
+the interfaces and components to build \pbt programs for Haskell modules,
+incorporating a facility for both custom and mechanically derived 
+automated test case generation using a wide range of sampling strategies.
+A \GC test program will include:
+
+\begin{itemize}
+\item the properties to be tested,
+\item one or more test case generators,
+\item a test case selection strategy,
+\item a test case evaluator,
+\item a reporting function,
+\item and the implementation modules to be tested.
+\end{itemize}
+
+\noindent The architecture decouples test case generation, 
+evaluation and reporting,
+and the library provides interchangeable implementations of these components.
+SimpleCheck, a package similar to \QC, 
+provides an example of a \GC test program,
+providing several interfaces with varying  levels of control of the test process.
+The interfaces between components are abstract and documented to provide 
+support for developing new components,
+hopefully forming the base for an extensible, open source environment to 
+support ongoing research into property based testing methodologies and tools.
+
+\section{ Contributions }
+
+The contributions documented in this thesis are:
+
+\begin{enumerate}
+
+\item {Provide a critical review of \pbt systems,
+identifying the valuable, shared functionality and 
+the limitations of each of these systems. 
+}
+\item { Identify the importance of sampling methods and 
+test case generation strategies based on term complexity as
+a unifying concept behind property based testing systems
+(chapter \ref{chp:propertytesting}). 
+}
+\item{Applying the 
+and the importance of these hypotheses in evaluating test strategies. 
+}
+\item{ Providing detailed definitions for
+term complexity based sampling generators for algebraic data types,
+generator composition and substitution for mutually recursive and polymorphic types
+}
+\item { Implement an approach to developing
+type independent test strategies
+using standardized sampling generators. 
+}
+\item{ Introduce the use of enumerative sampling generators for
+use in automated test case generation.
+This includes adapting the background theory of combinatorial structures
+for the algebraic data types commonly found in functional programming languages.
+Adapt these algorithms for constructing enumerations,
+based type definitions, for use in Haskell programs. 
+}
+\item{ Develop requirements for property-based testing software
+with automated test case generation for Haskell,
+including the decoupling of test case generation, evaluation and reporting components. 
+}
+\item{ Concrete realization of the \GC test framework in Haskell (and published to Hackage).
+}
+\end{enumerate}
+
+
+\section{Thesis Layout}
+
+This thesis motivates and defines \GC,
+a modular framework for the development of property based test programs for Haskell modules,
+using standard interfaces and components for automated test case generation,
+test evaluation and reporting.
+It is based on the application of sampling theory to algebraic specifications,
+a critique of existing testing packages,
+and the theory of combinatorial structures (\cite{FlajoletSedgewick2009}).
+It provides a common model for complexity based test case generation for algebraic data types,
+a library of generator combinators,
+and a module to construct \emph{enumerative} generators
+for the most common Haskell types 
+for a variety of sampling methods.
+It also provides a model for constructing type independent test strategies
+using standard sampling methods
+over the default enumerative generators or customized replacements.
+This framework allows the creation of property based tests and testing systems;
+an example called SimpleCheck is provided,
+as well as a \GC compatible version of \QC.
+The results of this thesis should also apply to 
+other similar functional languages such as the ML family,
+and to a lesser extent other types of programming languages.
+
+The thesis is laid out in chapters as follows:
+
+Chapter 1: introduction.
+
+Chapter 2: defines property based testing and 
+considers the interpretation of the test results
+relative to the test selection strategy applied.
+
+Chapter 3: a critique of some 
+existing property based testing systems
+incorporating automated test case generation.
+
+Chapter 4: how formal sampling methods can be applied to algebraic data types,
+and how these can be combined to create a wide variety of test case selection strategies.
+Stratification by term complexity is presented as
+an appropriate way to sample recursive types,
+and several measures of complexity are presented and compared.
+Post generation substitution is introduced as 
+a way to independently generate the shape and elements of data structures
+with different sampling methods.
+
+Chapter 5: introduces combinatorial enumerations and
+enumerative sampling generators as
+a standardized way to sample and generate the most common Haskell data types.
+This includes a theoretical basis for these enumerations,
+a proof of their existence for systems of (mutually) recursive algebraic data types,
+and an efficient means for iteratively constructing enumerations
+which can be mechanically derived from the definition of an algebraic data type.
+
+Chapter 6: provides a formal definition of a property based testing system,
+and the requirements for developing a modular framework,
+a set of interfaces and a library of standardized components
+to support their development.
+
+Chapter 7: describes the \GC framework for the development of property based testing systems,
+including the interfaces, sample evaluation and reporting components,
+an implementation of enumerative generators,
+and some example property based testing systems
+built on this framework that demonstrate how 
+the \QC family of packages are superseded by this framework.
+

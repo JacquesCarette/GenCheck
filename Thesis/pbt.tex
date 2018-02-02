@@ -1,0 +1,633 @@
+%\section{Property Based Testing}
+
+This section provides a formal definition of property based testing
+based on the definition of an algebraic specification as a theory presentation,
+and an implementation as an interpretation of that presentation.
+Algebraic specifications were selected as they are well suited to 
+implementation in a functional programming language,
+but definitions of properties could be derived for other specification languages.
+This definition was motivated by Goguen's \cite{GoguenIBM1977},
+but also by the more general works (\cite{BernotGaudelMarre1991'}, { \cite{Bernot1991})
+defining a formal specification as a form of Burtall and Guguen institution (\cite{BurstallGoguen1977}),
+which provide the basis for a formal definition of a test context.
+
+\subsection{Algebraic Specification as a Theory Presentation}\label{formal_spec}
+
+
+%\begin{df}[Formal Specification]
+%Given a formal syntax and semantics:
+%\begin{description}
+%\item[syntax:] { a signature $\Sigma$ and a set of valid sentences $\Phi_{\Sigma}$
+%that contains all of the well formed formulas built on
+%$\Sigma$, variables, atomic predicates and logical connectors.
+%}
+%\item[semantics:] {an associated class of $\Sigma$-models $(Mod_\Sigma)$ with 
+%a satisfaction predicate on $Mod_\Sigma \cross \Phi_{\Sigma}$ denoted by $\models$,
+%such that $\forall M \in Mod_{\Sigma}, \phi \in \Phi_{\Sigma}. M \models \phi$ is defined
+%and when true denotes $M$ satisfies $\phi$.
+%}
+%\end{description}
+%A \emph{formal specification} is given by a pair $SP = (\Sigma, Ax)$,
+%where $Ax \subset \Phi_{\Sigma}$ are the finite \emph{axioms}.
+%$Mod(SP) = \{ M \in Mod_{\Sigma} \vert \forall x \in Ax. M \models a \}$ 
+%is the class of models that satisfies (or validates) $SP$.
+%\end{df}
+
+\subsection{Algebraic Specification}
+
+\begin{df}[Signature]
+A (multi-sorted) signature is a pair $\Sigma = <S,\Omega>$ where
+\begin{itemize}
+\item S is a set of sort names (also denoted $sorts(\Sigma)$)
+\item $\Omega$ is a $(S^* \scart S)$ sorted set of operation names (also denoted $ops(\Sigma)$).
+\end{itemize}
+Allow the following notations:
+\begin{itemize}
+\item S* denotes the set of finite sequences of elements of S, including the empty sequence
+\item $f: s_1 \scart \cdots \scart s_n \mapsto s$ indicates 
+$s_1,\ldots,s_n \in S^*, s \in S\ and\ f \in \ \Omega_{s_1,\ldots,s_n,s}$
+\item $f:s$ is a short form for $f:\epsilon \mapsto s$, i.e. $f$ is a constant operator
+\item $arity(f) = s_1\ldots s_n$, or $f$ has $arity$ of $s_1\ldots s_n$
+\item the \emph{result sort} of $f$ is $s$.
+\end{itemize}
+
+\end{df}
+
+\begin{df}[Generators]
+$s \in S$ valued operators (elements of $\Omega$ with result $s$) are 
+collectively called the \emph{generators} of $s$.
+\end{df}
+
+\begin{df}[Constructors]
+A minimal set of the generators of $s \in S$
+that can still generate every object in $s$ are the \emph{constructors} of $s$.
+\end{df}
+
+\begin{df}[$\Sigma$ Algebra]
+A $\Sigma$ Algebra consists of
+\begin{itemize}
+\item an S-sorted set $\setcard{A}$ of carrier sets, the elements of which are called values
+\item for all $f: s_1 \scart \cdots \scart s_n \mapsto s \in \Omega$, a function
+$f_A: \setcard{A}_{s_1} \scart \cdots \scart  \setcard{A}_{s_n} \mapsto \setcard{A}_s$ 
+\end{itemize}
+\end{df}
+
+equations / equality, satisfaction
+
+\begin{df}[Presentation]
+A presentation is a pair $<\Sigma, \epsilon\>$ where
+$\epsilon$ is a set of $\Sigma$ equations, called the axioms of the presentation.
+\end{df}
+
+\begin{df}[Algebraic Interpretation]
+Is a model that satisfies axioms .
+\end{df}
+
+\subsection{Properties} \label{formal_pbt}
+
+A property is the implementation of one of the axioms of the presentation,
+a computable Boolean valued predicate with an input parameter of the appropriate sort
+for each of the universally quantified variables in the axiom.
+These predicates are called the \emph{properties} of the specification
+to distinguish them from the axioms defined in the specification language.
+The constants and operators in the predicate must be supplied by the implementation.
+If it does not provide all of them the property cannot be tested,
+and  the implementation is said to be \emph{inadequate}
+(an \emph{adequacy} hypothesis is part of the test context for algebraic specifications).
+
+An implementation satisfies a property if
+the property evaluates to true for all valid inputs,
+namely (the interpretations of) the valid subtitutions for those variables.
+This collection of values is called the \emph{property's domain}.
+The implementation satisfies the specification if 
+all of the axioms of the specification are implemented as properties,
+and all of the properties are satisfied according to the test context.
+
+\subsection{Formal Definition of a \pbt}
+
+The property based test hypothesis states that the implementation is correct
+if each property holds true over all allowed variable substitutions.
+The elements of the property domain that are evaluated
+are called the \emph{test cases},
+and the value of the property is the \emph{test result} for that case.
+The \emph{verdict} of the test is the conjugate of the results,
+and indicates whether the test supports ($True$) or refutes ($False$) the test hypothesis.
+Note that the test verdict can objectively refute the hypothesis,
+but only support, not prove, that the implementation is correct;
+the subjective conclusion that can be drawn from the result must be considered in the \emph{test context},
+discussed in section \ref{test_context}.
+
+\begin{df}[Property Based Test (\pbt)]
+A \emph{test} of property $p:Dom(p) \ra \boolean$ is a triple $\pbt = (p, T, v)$ where:
+
+\begin{description}
+\item[test case] is an element of the property domain, i.e. $t \in T$.
+\item[test set] is the collection of test cases $T \subseteq Dom(p)$ 
+\item[test verdict] determines whether the test supports or refutes the test hypothesis
+$$ v = (\wedge (\forall t \in T) . p(t) ) \in \boolean $$
+\noindent
+i.e. the conjugate of evaluation of the property over every input in the test set.
+\end{description}
+\end{df}
+
+
+\subsection{Example: Simple Stack Module}\label{sub:ListSpec}
+
+The implementation of an algebraic specification must be an interpretation.
+A Haskell module, for example,
+provides a type context that represents the sorts as types of values,
+and defines constants and functions for the operators as 
+exported entry points of a module.
+
+The implementation must also satisfy the semantics of the specification,
+meaning that the properties of the specification must hold over their domains.
+This interpretation of the semantics is referred to as 
+``loose'' semantics (\cite{MeseguerGoguen1986})/
+There are a number of different algebraic semantics which can be used,
+but this interpretation is sufficient for the purposes of testing.
+
+\begin{figure*}
+%\fbox {
+\begin{minipage}[t]{.3\linewidth}
+Sorts: Stack; Nat; Bool;
+\begin{align*}
+& Operators \\
+& new : Stack \\
+& empty : Stack \mapsto \boolean \\
+& push : Stack \sprod Nat \mapsto Stack \\
+& pop : Stack \mapsto Stack\\
+& top : Stack \mapsto Nat
+\end{align*}
+\end{minipage}
+\begin{minipage}[t]{.1\linewidth}
+\end{minipage}
+\begin{minipage}[t]{.6\linewidth}
+\begin{align*}
+& Axioms \\
+& empty( new ) = True \\
+&empty ( push( s, n ) ) = False\  \forall s:Stack, n:Nat\\
+& pop( new ) = new \\
+& pop( push( s, n ) ) = s \  \forall s:Stack, n:Nat\\
+& top( new ) = 0 \\
+& top ( push( s, n ) ) = n\  \forall s:Stack, n:Nat
+\end{align*}
+\end{minipage}
+%} % end xbox
+\caption[Algebraic specification of a stack]
+{A full algebraic specification of a stack with new, top, pop and empty.}
+\label{full_list_spec_ex}
+\end{figure*}
+
+One possible \emph{implementation} of this specification 
+is a Haskell module exporting the operators from the specification.
+
+\begin{code}
+-- A definition of Nat is assumed to be available in the context, but is provided here for clarity.
+data Nat = Zero | Succ Nat 
+
+module Stack (Stack(..), new, empty, push, pop, top) where
+
+data Stack = NewStack | Stk Nat Stack 
+
+new :: Stack
+new = NewStack
+
+empty:: Stack -> Bool
+empty NewStack = True
+empty _ = False
+
+push:: Stack -> Nat -> Stack
+push s n = Stk n s
+
+pop ::  Stack -> Stack
+pop (Stk n s) = s
+pop NewStack = NewStack
+
+top :: Stack -> Nat
+top (Stk n s) = n
+top NewStack = Zero
+
+\end{code}
+
+A \emph{test} of the implementation against the specification 
+consists of an interpretation of the predicates in Haskell 
+that can be evaluated over the module, i.e. the properties,
+and a collection of \emph{substitutions} for
+the universally qualified variables defined as input variables
+for the properties.
+For example, one possible test for the properties around empty are
+
+\begin{code}
+propNewEmpty = empty (NewStack)
+propPushNotEmpty n s  = (empty (push n s) == False)
+
+testEmpty = propNewEmpty
+    && and (zipWith (propPushNotEmpty.Stk) ns ss)
+    where ns = [Zero, Succ Zero, Succ (Succ Zero)]
+                 ss = [ NewStack, Stk (Succ Zero) NewStack, Stk (Succ (Succ Zero)) (Stk (Succ Zero) NewStack) ]
+                 
+\end{code}
+
+\noindent There is only one value for the empty NewStack property,
+so it is possible to confirm that the implementation is correct.
+For the Push not empty property, however,
+there are infinitely many possible test cases consisting of 
+any stack with at least one element.
+By necessity, a sample of values is tested,
+and the test is considered successful if
+the property evaluates to true at each test case
+\footnote{The ``and'' function is the conjugate over a list of Booleans
+and zipWith pulls arguments from multiple lists in sequence.}.
+How much confidence can be associated with this conclusion,
+given the small number of cases actually tested?
+
+\subsection{ Test Context }\label{sub:context}
+
+The verdict of a property based test
+is \emph{evidence} that the implementation is or is not correct,
+but does not in itself \emph{prove} this to be the case.
+The verdict must always be interpreted relative to
+the underlying assumptions about the correctness of the test procedures,
+but also to the criterion use to select the test set.
+A supporting hypothesis is required to justify 
+the claim that a program is correct for any untested elements of its domain.
+A \emph{testing context} (\cite{BernotGaudelMarre1991}, \cite{Bernot1991})
+formalizes the relationship between
+the specification, program, test set and the supporting hypotheses required
+to draw conclusions about the correctness of the implementation
+based on the verdict of the test.
+
+\begin{df}[test context]
+Given a program $P$ and its formal specification $SP = (\Sigma, Ax)$ 
+a \emph{test context}
+\footnote{\cite{Bernot1991} distinguishes between 
+a testing context and the existence of an oracle;
+these two definitions have been combined here for the sake of brevity}
+is a triple $(H, T, O)$ consisting of
+
+\begin{description}
+\item[H] { a set of hypotheses about the model $M_P$ associated with P;
+the class of models \emph{satisfying} H is denoted $Mod(H) \subset Mod(\Sigma_P)$.
+}
+\item[T] {the test set $T \subset Ax \subset \Phi_\Sigma$}
+\item[$O_P$] {an oracle is a partial predicate on $\Phi_\Sigma$ making use of the implementation P;
+$\forall \phi \in T. O_P(\phi) \implies M_P \models \phi$ 
+(the oracle may be undefined outside of T).
+} 
+\end{description}
+\end{df}
+
+\noindent
+In this definition, a test case is a single axiom expressed
+as the equality between two ground terms.
+If the specification of the axiom includes variables,
+then the test case is the axiom after an allowable substitution of ground terms for the variables.
+In \pbt, the oracle is the property written using the program P,
+and the test cases are pairs consisting of 
+a property function and a single input argument
+$(p: Dom(p) \ra \boolean, t)$ 
+representing the model of an axiom and a variable substitution.
+
+In order to form an argument for correctness
+the test context must be \emph{valid},
+i.e. accept all correct programs,
+and \emph{unbiased}, i.e.reject incorrect programs.
+
+\begin{df}[Valid Test Context]
+The test context $(H,T,O_P)$ is \emph{valid} if 
+$(M_P \models H) \implies ( (M_p \models T \implies M_p \models Ax) \land
+(\forall \phi \in \Phi_\Sigma. O_P(\phi) \implies M_P \models \phi)$
+\end{df}
+
+\begin{df}[Unbiased Test Context]
+The test  context $(H,T,O_P)$ is \emph{unbiased} if 
+$(M_P \models H) \implies ( (M_p \models Ax \implies M_p \models T)
+\land (\forall \phi \in \Phi_\Sigma. M_P \models \phi) \implies O(\phi)$
+i.e. if the program correctly implements the specification, 
+it will be successful over the test data set.
+\end{df}
+
+In order for testing context to be of use, 
+it must also be feasible to conduct the test in a reasonable period of time.
+A reasonable, valid, unbiased test context,
+called a \emph{practicable} test context in \cite{BernotGaudelMarre1991},
+is a short form for a formal argument for the correctness of an implementation.
+
+\begin{df}[Formal Argument for Correctness]
+A test context $(H, T, O_P)$ is a formal argument for 
+the correctness of an implementation $P$ of specification $SP(\Sigma, Ax)$ if:
+$M_{p} \models H \land \forall \phi \in T . O(\phi) \land 
+((M_P \models H \land M_P \models T) \implies M_P \models Ax)) $.
+\end{df}
+
+An exhaustive test is one in which each axiom of the specification is verified,
+which in the case of a property based test means the entire domain is tested.
+An exhaustive test context provides the base set of hypotheses
+for a point wise proof of correctness.
+
+\begin{df}[Exhaustive Test Context]
+$(H_{0}, Ax, O_P)$ is an exhaustive test context where
+$H_{0}$ are a set of base hypotheses.
+\end{df}
+
+These base hypotheses are just those required to 
+confirm that the oracle and test cases are developed using the implementation.
+This includes (but is not limited to):
+
+\begin{itemize}
+\item the test oracle must correctly compare the observed and predicted behavior;
+\item the test cases are correct interpretations of the inputs they represent;
+\item the evaluation of the test and computation of the verdict are correct; and
+\item if the same test were evaluated at a later time, the verdict would be the same
+\end{itemize}
+\noindent
+These assertions are necessary for the interpretation of
+any software test result.
+In a broader ``real world'' context,
+these hypotheses would also include assumptions
+about the scope of the argument for correctness
+such as repeatability of the test or implementation on multiple platforms.
+The development of this base set of hypotheses is beyond the scope of this thesis,
+so the definition of $H_0$ will implicitly be those hypotheses necessary 
+to establish the validity of the exhaustive test context.
+
+At the other extreme, the program is assumed to be correct without any testing.
+
+\begin{df}[Trust Test Context] 
+$(H_\top, \emptyset, undefined)$ where $M_P \models Ax \in H_\top$
+\end{df}
+
+\noindent In the trust context, 
+testing is unnecessary and the definition of the oracle is not relevant,
+but the very strong hypothesis ``the program is correct'' makes 
+the argument very weak
+(although sadly it is sometimes used in practice).
+This context is included here as it represents the opposite of the exhaustive context,
+thereby defining the range of test contexts.
+
+Where exhaustive testing is infeasible because the test data set is too large, 
+some compromise must be struck between 
+the ``it works'' (Trust)  and ``test everything'' (Exhaustive) contexts.
+One approach to developing practicable test contexts
+is to start with the exhaustive (also called the \emph{canonical}) test context, 
+which is known to be valid and unbiased,
+and refine it in a way that preserves those characteristics
+until the test data set is of a reasonable size,
+so the test context is practicable.
+\cite{BernotGaudelMarre1991}, defines a refinement preorder :
+
+\begin{df}[refinement preorder]
+Given two test contexts $TC_1 = (H_1, T_1, O_1), TC_2 = (H_2, T_2, O_2)$,
+$TC_2$ \emph{refines} $TC_1$ (denoted $TC_2 \refines TC_1$) if
+
+\begin{enumerate}
+\item $ Mod(H_2) \subset Mod(H_1)$ (or $H_2 \implies H_1$)
+\item $ \forall M_P \in Mod(H_2) . (M_P \models T2 \implies M_P \models T1)$
+\item $ \forall M_P \in Mod(H_2) . Dom(O_1) \subset Dom(O_2)$
+\item $ \forall M_P \in Mod(H_2) . \forall \phi \in D(O_1). O_2(\phi)  \implies O_1(\phi))$
+\end{enumerate}
+
+\end{df}
+
+\noindent
+A more \emph{refined} test context will generally have 
+stronger hypotheses and fewer test cases,
+but still must detect any errors that would have been caught using a less refined context.
+The refined oracle must have at least the same domain and 
+return the same results as the unrefined for any test case in both oracles' domains.
+Successive refinements to the test context build up a set of supporting hypotheses
+each of which justifies the assumption of correctness over a set of untested cases
+based on a subset of those test cases that are tested.
+
+The formal refinement preorder is introduced in this document
+to provide a framework and a vocabulary for discussing
+different test systems and test case selection strategies.
+The fundamental concept behind this preorder is
+the recognition that for each class of test cases that is removed from the test set,
+there should be one or more explicitly identified supporting hypotheses
+justifying the conclusion of program correctness over those untested values
+in the refined test context.  
+Explicitly and formally defining those hypotheses,
+even in the abstract setting of these formalized specifications and implementations,
+helps establish subjective confidence in 
+the verdict of the test and the arguement for program correctness.
+
+\subsection{Supporting Hypotheses}
+
+Two types of supporting hypotheses 
+(other than the base $H_0$ set required to justify even exhaustive testing
+in the ``real world'')
+are particularly important
+in establishing practicable test contexts:
+\emph{regularity} hypotheses and \emph{uniformity} (also \emph{stratification}) hypotheses.
+These are discussed in some detail here,
+as they form the basis for the credibility of 
+sampling based automated test case generation for \pbt,
+and in particular the test strategies of the \GC system,
+as will be seen in chapter \ref{chp:enumgen}.
+
+\subsubsection{Regularity Hypotheses}\label{sub:regularlity}
+A regularity hypothesis states that 
+if a program is correct over all of the test cases up to a certain complexity,
+the it will be correct over the remainder of the domain.
+
+\begin{df}[Regularity Hypothesis]
+Let $\phi(v) \in \Phi_\Sigma$ be a well-formed formula with variable $v$ of a sort S.
+Let $\| t \|_S$ be a complexity measure (a natural valued function) on the terms,
+and $k$ a positive natural value.  A regularity hypothesis w.r.t. $\phi$ and $v$ is
+$\forall t \in W_\Sigma . (\| t \|_s \leq k \implies M_P \models \phi(t)) \implies
+\forall t \in W_\Sigma . M_P \models \phi(t)$
+where $W_\Sigma$ is the set of ground $\Sigma-terms$.
+\end{df}
+
+\noindent 
+Regularity hypotheses are particularly important for 
+testing the properties of algebraic specifications,
+which may have axioms with infinite domains over recursively defined sorts.
+This hypothesis is also consistent with the small scope hypothesis (\ref{def:smallscope}), 
+the fundamental principle behind model checking finite state automata.
+
+A popular form of the regularity hypothesis is the \emph{small scope hypothesis}:
+\begin{df}[Small Scope Hypothesis]\label{def:smallscope}
+If there are any errors in a program,
+there will be errors in the program's handling of relatively simple inputs
+(\cite{JacksonDamon1996}).
+\end{df}
+\noindent
+This hypothesis has been examined for 
+a number of different programming paradigms (\cite{Andoni2003}),
+and forms the basis for model checking tools (\cite{ClarkePeled1999}).
+This research supports the notion that
+testing resources should be more heavily allocated to simple test cases,
+or put more simply: ``most bugs are shallow''.
+
+Evidence can be presented to support the regularity (or small scope) hypothesis
+and the choice of maximum complexity constant
+by analyzing the the implementation code (white box testing).
+Alternately, the specification properties can be analyzed 
+to determine what complexity of test case should be redundant.
+Generally neither of these approaches  ``prove'' such a hypothesis, however,
+as noted in \cite{ZhuHallMay1997} 
+
+\begin{quote}
+This (ed. Regularity) hypothesis captures the intuition of 
+inductive reasoning in software testing, but it cannot be proved formally 
+(at least in its most general form) nor validated empirically. 
+Moreover, there is no way to determine the complexity k such
+that only the test cases of complexity less than k need to be tested.
+\end{quote}
+
+\noindent so the credibility of the hypothesis remains subjective.
+There is little choice, however, but to accept some sort of limit
+on the complexity and size of arbitrarily large terms.
+Regularity hypotheses and this definition of complexity measure, 
+have proven to be very useful in property based testing tools 
+such as \QC, \SC, etc. which generate test cases up to a maximum ``size'' (complexity),
+and form the basis of complexity based test case generation in the GenCheck framework.
+
+\subsubsection{Uniformity Hypotheses}\label{sub:uniformity}
+
+A \emph{uniformity} hypotheses is used when the property domain is 
+partitioned and a proper subset of each part is tested.
+A formal version of this concept was introduced in \cite{WeyukerOstrand1980},
+as \emph{revealing subdomains}
+and then used by \cite{HamletTaylor1990}, 
+\cite{GoodenoughGerhart1975}, and \cite{BernotGaudelMarre1991}.
+The uniformity hypothesis claims that
+the partition consists of revealing subdomains (also called equivalence classes)
+so a single test case drawn from each part forms a valid and unbiased test.
+Note that the definition below does not state that there is such a partition,
+only that a claim of this nature can be described as a uniformity hypothesis.
+
+\begin{df}[Uniformity Hypothesis]
+If $(H, T_1 \union T_2, O_P)$ is a valid, unbiased test context,
+then $H_{U2} = \exists \phi^{*} \in T_2. O_P(\phi^{*}) \implies \forall \phi \in T_2. O_P(\phi)$ is a uniformity hypothesis,
+and $(H \union\{H_{U2}\}, T_1 \union \{\phi^{*}\}, O_P)$ is a valid, unbiased test context.
+\end{df}
+\noindent
+
+This formal partitioning of the test domain is
+generally based on a formal specification,
+an analysis of the implementation,
+or a combination of the two.
+For example, \cite{BernotGaudelMarre1991} details a constructive implementation analysis for 
+establishing equivalence classes of test cases using the following criteria:
+\begin{enumerate}
+\item each individual branching condition
+\item each potential termination condition (e.g. overflow)
+\item very variable correctly partitioned
+\item every condition implied by the specification
+and conditions resulting from the data structures and operation of the program
+\item predicates must be independent w.r.t. testing order
+\end{enumerate}
+\noindent 
+Any process of trying to identify equivalence classes using a \emph{semantic} analysis of this nature
+will be complicated and time consuming when applied to any practically useful program
+(the paper provides a lengthy explanation of how to actually perform this task).
+
+Software tools can assist in the decomposition into revealing subdomains.
+For example, \cite{Brucker2012} introduces the HOL-TestGen system,
+which partitions the domain of the property into equivalence classes
+with the help of the Isabelle/HOL theorem proving system
+\url{http://www.brucker.ch/projects/hol-testgen/}, \cite{HOL-testgen-UG}, \cite{Brucker2009}),.
+HOL-TestGen decomposes the specification and test hypothesis 
+into a collection of subdomains,
+and generates a representative test case for each.
+It also creates explicit the supporting hypotheses for this selection process,
+based on the inductions used to arrive at the partition.
+
+This approach to testing relies heavily on
+correctly partitioning the possible inputs into revealing subdomains.
+\cite{ZhuHallMay1997} provides a survey of research into test selection criterion, 
+either as strategies for selecting an adequate test set,
+or quantitative measures of the adequacy of a test set,
+for a given specification and / or implementation.
+Unfortunately, regardless of the tools or methodology used,
+it is quite difficult to be sure that
+all of the possible input values are represented in the test data 
+(\cite{Cartwright1981}).
+\cite{HamletTaylor1990} includes the following observation:
+\begin{quote}
+When looking for failures, it is appropriate to use peculiar test inputs. ...
+But if the right subdomains are the ones that find the unknown faults,
+those subdomains are equally unknown, and no system can necessarily find them.
+\end{quote}
+
+\subsubsection{Stratification Hypotheses}\label{sub:stratificationhyp}
+
+If formal notion of equivalence classes is relaxed
+by replacing the guarantee of uniformity of the test cases
+with a subjective argument suggesting the test cases are similar
+and likely to be affected by and expose the same errors,
+it becomes a basis for using \emph{stratified sampling} methods 
+(see \ref{stratified_sampling}).
+Testing multiple representatives from each of the strata (groups of similar test cases)
+using different sampling methods provides greater confidence
+that the program is correct over the entire partition,
+because it allows for unknown sources of errors within each part.
+For example, \cite{HamletTaylor1990} suggests 
+partitioning the domain according to a static analysis of
+the specification and / or implementation, 
+and then systematically (uniformly) sampling the subdomains.
+It is also the justification behind random sampling.
+This relaxed version of a uniformity hypothesis
+will be referred to as a \emph{stratification hypothesis}.
+
+A stratification hypothesis is similar to the kind of supporting hypotheses
+used in experiments supported by statistical inference.
+The two definitions below formalize 
+the assumptions that are typically made 
+to generalize the verdict of a software test
+to the untested parts of a property's domain.
+They are somewhat similar to 
+the \emph{hypothesis schemes} described in \cite{Romeyn2004},
+which provides a formal analysis of
+the relationship between statistical partition, 
+statistical hypotheses and Carnapian inductive logic.
+
+\begin{df}[Strong Stratification Hypothesis]
+If $(H, T_1 \union T_2, O_P)$ is a valid, unbiased test context,
+and $T_2^{*} \subset T_2$ is a proper subset, then 
+
+$$H_{U2} = \forall \phi \in T_2^{*}. O_P(\phi) \implies \forall \phi \in T_2. O_P(\phi)$$
+
+\noindent
+is a stratification hypothesis,
+and $(H \union\{H_{U2}\}, T_1 \union T_2^{*}, O_P)$ is a valid, unbiased test context.
+\end{df}
+\noindent
+This version of the stratification hypothesis is ``strong'' because
+the local verdict formed from the strata's sample is independent
+of the stratification and verdicts from the other samples.
+A weaker version of the stratification hypothesis requires
+corroboration of correctness from the localized verdicts of other strata;
+this correctness may in itself be a deduction based on other stratification hypotheses.
+
+\begin{df}[Weak Stratification Hypothesis]
+If $(H, T_1 \union ... \union T_{n-1} \union T_{n}, O_P)$ is a valid, unbiased test context,
+and $T_n^{*} \subset T_n$ is a proper subset, then 
+
+$$H_{Un} = \forall \phi \in T_i, 1 \le i < n. O_P(\phi) \implies (\forall \phi \in T_n^{*}. O_P(\phi) \implies \forall \phi \in T_n. O_P(\phi))$$ 
+
+\noindent
+is a weak stratification hypothesis,
+and $(H \union\{H_{U2}\}, T_1 \union ... \union T_{n-1} T_n^{*}, O_P)$ 
+is a valid, unbiased test context.
+\end{df}
+
+The small scope hypothesis is a form of weak stratification hypothesis:
+the verdict of the test over ``simpler'' test cases
+supports reduced testing of more complex test cases.
+
+Regularity hypotheses are an extreme form of stratification hypothesis:
+if the program is correct up to the set input complexity,
+it is correct everywhere.
+This kind of stratification hypothesis is a basic,
+although frequently implicit, principle behind 
+many test case selection strategies.
+Test systems using syntactic approaches to generating test cases 
+(e.g. \QC, \SC, \GC) rely on stratification hypotheses rather than uniformity hypotheses
+because there is no attempt to justify the partitioning of the property domain 
+into equivalence classes,
+just an assertion that test cases of similar complexity and content will uncover the same errors.
+
