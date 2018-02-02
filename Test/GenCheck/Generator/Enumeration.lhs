@@ -30,11 +30,10 @@ structure The second index (Count) is an arbitrary Integer type to allow very
 large enumerations.
 
 The built in enumeration (Enum) is used for Haskell base types that are
-instances of Haskell's Bounded and Enumerated classes (e.g. |[minBound ..
-maxBound]|).  Enumerations are also provided for |Integer|, |Ratio|,
-|Rational|, |Float| and |Double|.  These ``scalar'' types require some
-additional structure.  Most of the base type enumeration functions are in
-BaseTypeEnum.lhs.
+instances of Haskell's Bounded and Enumerated classes.  Enumerations are also
+provided for |Integer|, |Ratio|, |Rational|, |Float| and |Double|.  These
+``scalar'' types require some additional structure.  Most of the base type
+enumeration functions are in BaseTypeEnum.lhs.
 
 All Haskell regular polynomial structure types can be enumerated by rank (size)
 using a mechanical algorithm based solely on the type constructor.  These
