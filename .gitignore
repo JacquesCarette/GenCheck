@@ -9,3 +9,9 @@ dist/
 *.pdf
 
 Test/GenCheck/Tests/Install
+
+*.bbl
+*.blg
+*.lof
+*.toc
+*.swp
