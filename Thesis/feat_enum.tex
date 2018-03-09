@@ -1,0 +1,49 @@
+
+There are a number of differences between the \FEAT (\cite{Duregard2012} ) enumerations
+and those described in this chapter:
+
+\begin{enumerate}
+\item \FEAT uses the number of constructors embedded in the term as it's size,
+instead of the number of atoms in the construct.
+\item the enumeration is over concrete terms, meaning that all element types are incorporated into the overall enumeration
+as opposed to supporting post enumeration substitution;
+\item  a single sampling method is applied to the enumeration to create the test data set
+(although the test can be repeated independently with each of the three supported sampling methods);
+\item \FEAT does not support explicit substitution of independently sampled values into structures;
+\item a different enumeration algebra is supported - 
+they explicitly discuss \cite{FlSa95} and their reasons for not using this approach.
+\end{enumerate}
+
+Their approach, while providing a single source of random, uniform and exhaustive test case generators,
+does not allow for more complicated hybrid sampling methodologies
+nor for specialized generators for specific domains (e.g. a ``person name generator'' or ``physical address generator'')
+as an alternate sampling methodology.
+The main focus of \FEAT was to provide computationally efficient enumerations,
+so further analysis of their enumerations is left to the chapter \ref{chap:GCimplement}.
+\gordon{I better make sure I actually did this.}
+
+One interesting detail is that the issue of epsilon-freeness in the theory of combinatorial structures
+presents itself as the need to assign an explicit cost to recursion in the calculation of term size
+(in the paper this is referred to as the part identifier).
+In their enumeration part cost function (equivalent to rank in this thesis),
+constants (called singletons) are given a cost of $0$.
+The authors point to a representation of the natural numbers
+
+\begin{code}
+data Nat = Z | S Nat
+\end{code}
+
+and note that without an explicit cost for each recursive call,
+all of the natural numbers would end up with the same cost,
+thus violating the requirement that each part of the population must be finite.
+This specification, as stated, cannot be represented in the theory of combinatorial constructions,
+but must instead be altered so |S| is a product :
+
+$$ \spec{N} = \specI \splus (\spec{S} \sprod \spec{N}) $$
+
+where $\specI, \spec{S}$ are constants with weight $1$.
+In effect, the natural numbers are modelled as lists of constants,
+and the need to provide a weight of $1$ to the $\spec{S}$ constant to keep the structure epsilon free
+is equivalent to the need for the recursion cost in the \FEAT enumeration.
+
+
