@@ -5,13 +5,17 @@ The number of different packages suggests
 a strong interest in this approach to testing Haskell modules,
 but the proliferation of independent software testing systems 
 hinders comparisons of the different methodologies and their usefulness in software verification.
+
 One of our main criticisms of the ``*\_Check'' family of testing systems
 was their tight coupling of a test case generation, evaluation and reporting
-around a single sampling method (section \ref{pbtsystem}).
-
+around a single sampling method (section \ref{pbtsystems}).
 Instead of developing independent testing systems for each sampling method,
 a test system should allow different sampling generators to be combined with
 modules that evaluate and report test results in the most appropriate way for the situation at hand.
+This would be best implemented as a \emph{framework} that
+would supply common interfaces for generating, evaluating and reporting,
+allowing modules for each to be specialized independently but used interchangeably,
+allowing new sampling methods and generating functions to be incorporated.
 The two goals of this unification are:
 \begin{enumerate}
 \item support research into automated test case generation
@@ -19,20 +23,11 @@ by allowing direct comparisons of test case selection criteria
 \item support the use of sampling strategies for practical software verification 
 or projects of different complexity and stages of software development.
 \end{enumerate}
-This would be best implemented as a \emph{framework} that
-would supply common interfaces for generating, evaluating and reporting,
-allowing modules for each to be specialized independently but used interchangeably,
-and should even allow new sampling methods to be incorporated.
-
-The design and implementation of the framework will be guided by
-the critiques of the other property based testing tools from chapter \ref{pbtsystems},
-but also by the analysis of the test context supporting hypotheses and 
-sampling methodologies from chapter \ref{chp:propertytesting}.
-For the purposes of establishing a concrete set of recommendations
-(and comparison with the \GC framework design and implementation, chapter \ref{GC-implementation})
-it will be assumed that both the modules and
-the framework will be written in Haskell,
-but the requirements will apply to other similar functional programming languages.
+\noindent This chapter provides the requirements that a generic \pbt system framework should satisfy
+to achieve these goals.
+The requirements will be guided by the critiques of the other property based testing tools from chapter \ref{pbtsystems},
+but also by the analysis of test context supporting hypotheses (section \ref{pbt}) and 
+sampling methodologies from section \ref{sec:sampling_theory}.
 
 Property based testing consists of four fundamental steps:
 \begin{enumerate}
@@ -42,15 +37,12 @@ Property based testing consists of four fundamental steps:
 \item report the results of the test
 \end{enumerate}
 \noindent
-
-The framework should consist of interfaces isolating each of these stages,
-support a library of interchangeable components,
-and allow customized implementations of each of the component modules.
-In Haskell interfaces can be implemented as ad hoc classes,
-with each new variant an instance, 
-or by defining data types and allowing values of that type to be defined.
-A high level description of the mandatory interfaces and 
-their interactions during the testing process are addressed in this chapter.
+The requirements for each component and how they interact is described below.
+For the purposes of establishing a concrete set of recommendations
+(and comparison with the \GC framework design and implementation, chapter \ref{chap:source})
+it will be assumed that both the modules and
+the framework will be written in Haskell,
+but the requirements will apply to other similar functional programming languages.
 
 \section {Properties}
 The following characterstics of properties should be observed:
@@ -65,22 +57,26 @@ so the test generation can be unbiased by the order of parameters.
 that the property should hold over to satisfy the specification.
 The domain of the property may not coincide exactly with a type in the program's context.
 The property must be defined over the domain required by the specification, but may be otherwise undefined.
-\item[precondition] it should be possible to define a characteristic function identifying inclusion in a properties domain
-if such a function exists and distinguish properties with known preconditions from those without.
 \end{description}
+
+\subsection{Property Function and Specifications}
+A property is a boolean valued function
+defined over the domain of the property,
+and each property will be evaluated individually.
+Since the overall goal of the testing is 
+likely to be the validation of the modules against a 
+specification consisting of a number of properties,
+the test framework should allow test results
+over multiple properties to be combined into a single verdict.
 
 \subsection{Univariate Properties}
 The general practice in Haskell and other functional languages
-is to \emph{curry} functions of multiple arguments (see \cite{Haskell2010Report}),
-i.e. a function $p: T_1 \scart T_2 \scart ... \scart T_n \ra T_p$ is
-interpreted as |p :: T_1 -> (T_2 -> (... -> (T_n -> T_p))) |.
+is to \emph{curry} functions of multiple arguments (see \cite{Haskell2010}),
 Functions are ``first class citizens'',
-meaning they can be passed as data values,
-and therefore a property with multiple arguments
+so a property with multiple arguments
 can be tested by fixing the first argument and 
-then deriving the verdict of a \pbt on 
-the segmented property over the remaining arguments.
-\QC, for example, supports the testing of curried multivariate predicates in this way.
+then deriving the verdict on the segmented property over the remaining arguments.
+\QC, for example, supports the testing of curried multivariate predicates in this way,
 which is appropriate because only random test case generation is supported,
 and each argument for a test case is generated independently.
 
@@ -93,23 +89,23 @@ establish the probability distributions for selection.
 Properties should instead be defined as \emph{univariate} Boolean functions
 by uncurrying the functions to be tested as required and
 sampling over the entire test domain.
-Any curried function with multiple arguments has an uncurried equivalent representation
-which is a function of a single argument that is the product of the curried arguments:
+Uncurrying within the property
+may prove a minor inconvenience to the programmer,
+but does not otherwise impact the implementation being tested
+(note that there is no suggestion that the modules being tested are uncurried, just the property).
 
-\begin{lstlisting}
-uncurry :: (a -> b -> c) -> ( (a,b) -> c)
-uncurry f = \x y -> f (x,y)
-
-\end{lstlisting}
-Uncurrying does provide a minor inconvenience to the programmer,
-but does not otherwise impact the implementation being tested.
-
-\subsection{Preconditions}
-A precondition is a Boolean guard over the input type of the property function,
+\subsection{Property Domains and Preconditions}
+The univariate argument for a property function will have a parameter type,
+but the property will not necessarily be defined over that entire range of that type.
+For example, a property might apply only to ordered lists,
+but the condition of ordered cannot be represented in the type system.
+A \emph{precondition} is a Boolean guard over the input type of the property function,
 i.e. the \emph{characteristic} function of the property's domain with respect to the input type.
 \QC and other packages incorporated these preconditions into the property definition
 using a conditional combinator,
 replacing test cases that did not satisfy the precondition with additional test values.
+The representation of properties should therefore allow for the definition of a precondition
+that can determine the eligibility of an input argument.
 
 \subsection{Existential Variables}
 
@@ -120,45 +116,6 @@ and can be supported  by allowing a negated property verdict to represent succes
 e.g. $\exists x . p (x) \iff \neg (\forall x . \neg p (x))$.
 The investigation of sampling strategies to support the correctness of existential properties
 would be an interesting use of such a framework.
-
-\section {User / Programmatic Interface}
-
-The purpose of the framework is to support the development of test tools,
-so support the development of the user interface, not implement one.
-Developers of new test tools will be choosing between the following kinds of user interface
-
-\begin{description}
-\item [CLI] Command line interfaces are most useful for 
-quick tests by testers that use the tool frequently,
-and for embedding in a script for ``batch'' processing.
-\item [GUI] Graphical user interfaces are most appropriate for interactively exploring the test domain,
-or ``drilling down'' through properties and modules when debugging a complicated system.
-They are also useful for managing 
-large numbers of tests across multiple systems and / or testers,
-perhaps generating scripts for repeated test cycles.
-\item [API] application programming interfaces allow other programs,
-either programs for testing a particular specification or tools that support software testing,
-to invoke the test system or it's components.
-\end{description}
-
-All of the features of the test framework should be available for use in any of those environments.
-The framework should consist of Haskell modules,
-exposing as much of the functionality to external calls as possible.
-\QC and \SC provide this interface for programs to use when testing a property,
-which has contributed to their popularity;
-\FEAT provides similar capabilities.
-
-\subsection{Multiple Properties and Shared Test Suites}
-
-Properties with a common input argument type
-should be able to use the same test cases to avoid overhead of regenerating.
-This is a weakness of \QC et al:
-test cases are generated during test execution,
-a new test suite is generated with every test pass
-(the test cases can only be shared by testing the conjunction of the properties).
-Sharing test suites requires they are accessible from outside the context of a single property test,
-and ideally can be stored and retreived to allow the test to be repeated.
-
 
 \section{Test Cases, Suites and Strategies}
 
@@ -225,10 +182,22 @@ and that strategy will consist of instructions to automated test case generators
 loading cases from a file, interactively requesting cases etc.
 
 
+\subsection{Multiple Properties and Shared Test Suites}
+
+Properties with a common input argument type
+should be able to use the same test cases to avoid overhead of regenerating.
+This is a weakness of \QC et al:
+test cases are generated during test execution,
+a new test suite is generated with every test pass
+(the test cases can only be shared by testing the conjunction of the properties).
+Sharing test suites requires they are accessible from outside the context of a single property test,
+and repeatability is also an important requirement for testing,
+so it must be possible to store and retrieve the suite to allow the test to be repeated.
+
 \section{Results and Reporting}
 The results of a test - the evaluation of a property over a test suite - consist of the overall verdict,
 but also the evaluation of each test case 
-and optionally informatoni about the performance of the system during that evaluation.
+and optionally information about the performance of the system during that evaluation.
 Like the test case,
 a result should be a class of data structure,
 with a method to retreive the verdict,
@@ -267,7 +236,7 @@ concat : v1 \^ v2 = greater of the two\\
 \end{df}
 
 The result container consists of the verdict and evaluations of each test case.
-Making the result container a labelled partitioned container like the test suite
+Making the result container a labeled partitioned container like the test suite
 provides good support for reporting coverage analysis,
 and provides for low overhead evaluation strategies (such as map),
 but also allows the result set to be monoidal in both the container and the verdict.
@@ -283,7 +252,7 @@ caused by having verdicts at both the test case and test suite levels,
 the monoidal nature of the verdict computation makes the meaning consistent.
 
 Reporting modules will present the contents of a results class,
-optionally using the partitioning and labelling of those parts
+optionally using the partitioning and labeling of those parts
 to provide more detailed analyses.
 They may be specialized to use extra information about the evaluations.
 
@@ -386,7 +355,7 @@ so has the property of referential transparency.
 In an Haskell implementation,
 this would require the test suite container to be an instance of the |Functor| class.
 
-\QC, \SC and the related packages reviewed in chapter \ref{pbt_soft}
+\QC, \SC and the related packages reviewed in chapter \ref{pbtsystems}
 scheduled test cases to be generated and evaluated sequentially,
 using a monadic test function (or a similar approach).
 This kind of scheduling can be accomplished using 
@@ -421,8 +390,6 @@ The IO monad prevents this, so then the property must be tested in a monadic way
 Reporting of course must be an IO function,
 as is retrieving test cases from a file,
 but otherwise the test components should not use an IO monad
-( A discussion of random generators and monads
-is found below in \ref{sub:randreq}).
 
 \subsubsection{Parallelism}
 Testing is one of the few intrinsically parallel tasks software engineers face,
@@ -599,7 +566,7 @@ without increasing the complexity of that term.
 Even an empty structure must be represented by a nullary constructor,
 which has a unit complexity, as would all base type values.
 This distinction is particularly important when incorporating combinatorial theory, 
-and in particular the Theory of Species (see \ref{sec:species}),
+and in particular the Theory of Species (see \cite{Joyal81}),
 in which the abstraction of the empty structure has complexity $0$.
 The only exception to this would be the value $\bot$,
 if the test program were to support such a test value (such as \LSC):
@@ -726,7 +693,6 @@ to define data types in Haskell programs.
 Any of these could be complicated relationships,
 and it should be possible to choose different sampling strategies
 for components, elements and mutual recursive structures.
-See \ref{sub:reqsubcomp} below for more on this.
 
 Any test framework  should include at least 
 the four \emph{standard} sampling strategies below,
