@@ -7,7 +7,7 @@ Algebraic specifications were selected as they are well suited to
 implementation in a functional programming language,
 but definitions of properties could be derived for other specification languages.
 This definition was motivated by Goguen's \cite{GoguenIBM1977},
-but also by the more general works (\cite{BernotGaudelMarre1991'}, { \cite{Bernot1991})
+but also by the more general works (\cite{BernotGaudelMarre1991}, { \cite{Bernot1991})
 defining a formal specification as a form of Burtall and Guguen institution (\cite{BurstallGoguen1977}),
 which provide the basis for a formal definition of a test context.
 
@@ -115,7 +115,7 @@ and indicates whether the test supports ($True$) or refutes ($False$) the test h
 Note that the test verdict can objectively refute the hypothesis,
 but only support, not prove, that the implementation is correct;
 the subjective conclusion that can be drawn from the result must be considered in the \emph{test context},
-discussed in section \ref{test_context}.
+discussed in section \ref{sub:context}.
 
 \begin{df}[Property Based Test (\pbt)]
 A \emph{test} of property $p:Dom(p) \ra \boolean$ is a triple $\pbt = (p, T, v)$ where:
@@ -426,7 +426,7 @@ sampling based automated test case generation for \pbt,
 and in particular the test strategies of the \GC system,
 as will be seen in chapter \ref{chp:enumgen}.
 
-\subsubsection{Regularity Hypotheses}\label{sub:regularlity}
+\subsubsection{Regularity Hypotheses}\label{sub:regularity}
 A regularity hypothesis states that 
 if a program is correct over all of the test cases up to a certain complexity,
 the it will be correct over the remainder of the domain.
@@ -560,7 +560,7 @@ by replacing the guarantee of uniformity of the test cases
 with a subjective argument suggesting the test cases are similar
 and likely to be affected by and expose the same errors,
 it becomes a basis for using \emph{stratified sampling} methods 
-(see \ref{stratified_sampling}).
+(see \ref{sub:stratified_sampling}).
 Testing multiple representatives from each of the strata (groups of similar test cases)
 using different sampling methods provides greater confidence
 that the program is correct over the entire partition,

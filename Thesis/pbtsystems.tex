@@ -287,7 +287,7 @@ and so they are discussed at length there.
 This discussion will include comparisons of their test selection strategy,
 but will also delve into the architecture and design of the packages:
 user interface, property definition, test case generation, test case evaluation, termination conditions and reporting capabilities.
-The design of the \GC package presented in chapter \ref{chap:GCimplement} 
+The design of the \GC package presented in chapter \ref{chap:source} 
 resulted from this analysis.
 
 \subsection{QuickCheck}\label{sub:quickcheck}
@@ -1120,7 +1120,7 @@ of the test cases to be a controlling factor in
 the selection and ordering of test cases,
 prioritizing the smaller test cases over the larger.
 The size variable acts as a measure of complexity
-compatible with use of the regularity hypothesis (section \ref{sub:regularlity}),
+compatible with use of the regularity hypothesis (section \ref{sub:regularity}),
 and the small scope hypothesis (definition \ref{def:smallscope}).
 \FEAT uses the total number of constructors in a value as it's size,
 while the other packages use the maximum recursion depth of the structure as the size.
