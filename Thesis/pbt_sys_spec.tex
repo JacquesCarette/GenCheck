@@ -8,3 +8,13 @@ A high level description of the mandatory interfaces and
 their interactions during the testing process are addressed in this chapter.
 
 
+\subsection{generators}
+Test generators exhibit a lot of the structure of the data they generate,
+so are suitable for generic programming techniques.
+Generators should be constructed using combinators for 
+disjoint unions (sums) and products of base types,
+mirroring the Haskell type constructor algebra.
+The generator combinators provided by \QC, \SC, etc.
+are a good example of how generator combinators can be used
+to develop generators for algebraic data types in Haskell.
+

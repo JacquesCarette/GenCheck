@@ -50,15 +50,14 @@ The choice of sampling strategy for property based testing,
 and software testing in general,
 remains an open area of research
 (\cite{ZhuHallMay1997}, \cite{Hieronsetal2009}).
-Even the 
-The se a canonical sampling strategy
-that should be used for property based testing,
+These works suggest that there is not a canonical choice,
 but instead suggest that a variety of sampling methods 
 should be available and combined into software strategies.
-Random sampling is simple to use and has very good statistical properties,
+Random sampling is simple to use and has very good statistical properties (e.g. unbiased),
 but systematic sampling ensures a diversity of values and avoids duplicates.
 Stratification allows different sampling methods to be used 
-over different subsets of the domain.
+over different subsets of the domain,
+and more coverage of simple cases versus more complex terms.
 Purposive sampling such as static analysis of the property
 or expertise in the problem domain take advantage of human experience.
 The benefit of each will depend on 
@@ -123,4 +122,178 @@ The remainder of this chapter demonstrates how
 sampling methods and strategies can be implemented
 across the types likely to be found in algebraic specifications,
 with a focus on the Haskell language as a practical example.
+
+Any test framework  should include at least 
+the four \emph{standard} sampling strategies below,
+but as sampling is an open area of research, 
+should also allow new strategies to be easily incorporated.
+
+\subsubsection{Exhaustive}
+
+Exhaustive testing is not a true ``sampling'' technique because 
+it includes all of the values of the population.
+Exhaustive sampling, however, refers to testing all of the values
+from some part of the population values.
+For example, in \SC all of the recursive structures up to a certain depth were tested,
+while in \FEAT an exhaustive sample includes all structures up to a given number of elements.
+As noted, while these two packages produce different exhaustive test data sets,
+both partition the domain of test values by a complexity measure,
+and then exhaustively test all of the elements in the parts up to a set complexity.
+Any property based test framework should include this kind of exhaustive sampling,
+remaining agnostic to the choice of complexity measure.
+
+Exhaustive sampling is significantly different from other strategies
+in that it does not use of the order of the values in each part when
+selecting the values to test, since all of the values of a part are tested.
+An exhaustive test generator will still require the values of the part are organized in some way
+to ensure that all of the values are selected, and only once,
+and the order may impact the scheduling of the test case evaluations.
+Exhaustive generators will often be programmed differently than other sampled generators
+to take advantage of there not being a selection criterion,
+optimizing the construction of test cases,
+and reinforceing the need for a test framework to allow customize, optimized, generators
+to be arbitrarily labelled as the ``exhaustive'' generator.
+
+\subsubsection{Uniform}
+
+Uniform sampling selects values that are equidistant from each other
+in some ordering over the values, such as an enumeration or traversal algorithm.
+In other words, uniform distribution takes every $ (n / k)_th $ element where
+$n$ is the total number of values and $ k $ is the sample size.
+It is usually used to support a uniformity argument
+for complexity levels where exhaustive testing is impractical.
+This is similar to random sampling,
+but with a better guarantee of diversity from the population.
+
+It is possible to introduce a \emph{bias} to the test case selection
+with a uniform sampling interval over a fixed index of the type's values.
+Selecting values that are precisely equidistant in an enumeration / order
+makes the technique susceptible to systemic bias caused by correlations between
+the enumeration / traversal order and patterns in algebraic operations over the types.
+A ``slightly randomized'' or near-uniform sampling which 
+would take a uniform sampling and add 
+a small amount of variability to which value was selected to ensure 
+no correlation between the sampling interval of the structure of the type being sampled
+and the implementation's processing of that type.
+
+The testing framework should support uniform and ``near-uniform'' sampling strategies.
+
+\subsubsection{ Extreme / Boundary}
+
+\gordon{References, support?}
+
+Boundary, or extreme, values are generally recognized as having higher probability of errors.
+For example, for any base type the upper and lower bounds of the values
+of any bounded, enumerated type represent likely sources of error
+in process because the program push the value outside of the bounds without checking.
+For recursively defined algebraic data types
+the extreme values are those that represent the most unbalanced set of choices,
+considering the disjoint unions in the constructors as decision points,
+e.g. a binary tree that is just a single left or right branch.
+These unbalanced choices are likely to be special cases in
+an implementation to handle recursive types,
+so a possible source of error.
+These are heuristics, and are provided without proof,
+but it is part of the ``common sense'' of software engineering.
+
+The test framework should support a datatype generic scheme
+for generating extreme samples from as many types as possible,
+and in particular from recursive algebraic types as described above.
+Since the definition of a boundary or extreme value is type specific,
+particularly for base types, 
+it should also allow extreme samples to be 
+explicitly supplied for any given type.
+For example,
+the extreme values of  |Double| should include negative infinity,
+positive infinity, not a number, 0, the largest positive and negative numbers,
+the smallest possible absolute values, etc.
+User defined types might also include values that are extreme because
+of the semantic interpretation of a model,
+so it should be possible to include these extreme values in a customized sample.
+
+
+\subsubsection{Random}
+
+Random sampling selects a sequence of values``at random'' 
+from a population based on a probability distribution assigned over the values.
+Random sampling produces an infinite stream of values:
+repetitions are allowed and 
+there is no change in the probability of any given value being selected
+regardless of how many times it has already been selected.
+
+A pseudo-random value generator function,
+such as those found in Haskell's  |Random| module,
+produces a generic sequence of random values within a given interval.
+based on an input ``seed'' value.
+The values are pseudo-random because the generator function
+is deterministic with respect to the initial input ``seed'';
+the sequence for each seed simulates a random, but fixed, sequence of values.
+The generator maps the pseudo-random values from the sequence
+to values of the generated type through the probability distribution.
+Each computation results in a test value and a new seed,
+which must be passed through to the next computation.
+For example, \QC pulls the seed from the IO monad environment using |newStdGen|,
+and then test values are generated using Haskell's |Random| module within the |Gen| monad, 
+which manages the updating random seed for the generators.
+
+One very important principle of testing is that any test should be repeatable.
+Truly ``random'' sampling would not allow a test to be repeated exactly,
+unless the test cases were stored and reused.
+Any random sampling facility provided by a property based test framework
+should be deterministic, based on an initial seed that can be stored with the test results.
+Fortunately, Haskell's random generators (and random generators in general) are not actually random,
+so beginning from the same seed value should provide the same sequence of pseudo-random test cases.
+A ``random'' starting seed could be provided as an optional part of an interface,
+to initiated the random sampling,
+providing a choice between deterministic and random testing.
+
+Two different approaches to random generation were used in the reviewed packages.
+\QC approaches the problem by treating 
+each disjoint union in a type constructor as a decision point,
+randomly selecting a constructor and then randomly populating it,
+``building'' the structure one constructor at a time.
+The constructors in a disjoint union are given equal or specified weighting
+to alter the probability distribution of the choices.
+The probability distribution is difficult to control this way
+and does not guarantee termination unless
+the generator is explicitly keeping track of the number of recursions,
+so this approach requires a significant planning effort by the test developer.
+However, the constructive approach is easy to implement if the exact distribution is not important and
+is quite efficient for very large values since the cost of each decision is constant (i.e. $O(n)$).
+
+The other approach to random sampling is to create an \emph{enumeration}
+over the values of the type being generated,
+and use that information to create a uniform probability distribution.
+This approach was explored extensively in \cite{FlajoletZC94,FlSa95}
+and provides a much more reliable distribution of values for a given size.
+This approach is distinctly more expensive, ( $O (n log n)$),
+so for larger structures may not be the best choice.
+This approach is used in \FEAT and the \GC packages,
+both released in June, 2012.
+
+\gordon{reference and briefly discuss Boltzmann algorithm for large random value generation}
+
+Any test framework should support both enumerative and constructive styles of random generation.
+In addition, different random selection strategies should be allowed by 
+the test framework to support research and
+allow the most appropriate implementation to be selected for any given situation.
+The sampling strategy should receive a the generating seed as an input,
+so the sample can be repeated later or given a random seed.
+
+
+\subsection{Static Analysis of Properties and Implementations}
+
+Not all test case selection uses sampling strategies.
+For example, \HOLTG does \emph{not} use a sampling strategy -
+it partitions the specification into subdomains, or equivalence classes,
+and derives a representative for each part.
+This is a \emph{complementary} strategy to sampling.
+
+It would be interesting to consider a hybrid approach which
+derived the partitions based on the specification,
+but then used (over)sampling strategies within those regions to
+test the assertion that the subdomains are the equivalence classes of
+the implementation, while also providing greater confidence in the test.
+In any case, a test framework should allow test cases to be generated
+externally to the test package and incorporated into the test data sets.
 
