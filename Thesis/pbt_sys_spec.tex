@@ -1,20 +1,14 @@
 
 The specification consists of interfaces isolating each of these stages
 and a suggested library of components that should be provided as a base implementation.
-In Haskell interfaces can be implemented as ad hoc classes,
-with each new variant an instance, 
-or by defining data types and allowing values of that type to be defined.
-A high level description of the mandatory interfaces and 
-their interactions during the testing process are addressed in this chapter.
+In Haskell interfaces can be implemented as typeclasses,
+with each new variant an instance.
+These interfaces and their use in the testing process are described in
+this chapter.
 
-
-\subsection{generators}
+\subsection{Generators}
 Test generators exhibit a lot of the structure of the data they generate,
-so are suitable for generic programming techniques.
-Generators should be constructed using combinators for 
-disjoint unions (sums) and products of base types,
-mirroring the Haskell type constructor algebra.
+and thus their implementation is well-suited to
+generic programming techniques.
 The generator combinators provided by \QC, \SC, etc.
-are a good example of how generator combinators can be used
-to develop generators for algebraic data types in Haskell.
-
+are good example of this.
