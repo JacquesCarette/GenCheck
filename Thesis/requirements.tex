@@ -1,124 +1,84 @@
 The sampling based \pbt software discussed in chapter \ref{pbtsystems}
 have a number of similarities in their design
 while adopting a variety of test selection and generation strategies.
-The number of different packages suggests 
-a strong interest in this approach to testing Haskell modules,
-but the proliferation of independent software testing systems 
-hinders comparisons of the different methodologies and their usefulness in software verification.
-
-One of our main criticisms of the ``*\_Check'' family of testing systems
-was their tight coupling of a test case generation, evaluation and reporting
-around a single sampling method (section \ref{pbtsystems}).
-Instead of developing independent testing systems for each sampling method,
-a test system should allow different sampling generators to be combined with
-modules that evaluate and report test results in the most appropriate way for the situation at hand.
+One of our main criticisms of the ``*Check'' family
+is their tight coupling of a test case generation, evaluation and reporting
+(section \ref{pbtsystems}).
+Rather a system should allow different sampling generators to be combined with
+modules that evaluate and report test results in the most appropriate way for
+the situation at hand.
 This would be best implemented as a \emph{framework} 
 based on common interfaces for generating, evaluating and reporting.
-This would support:
-\begin{enumerate}
-\item research into automated test case generation
-by allowing direct comparisons of test case selection criteria
-and the development of new sampling methodologies
-\item the use of sampling strategies for practical software verification 
-on projects of different complexity and stages of software development.
-\end{enumerate}
 
-This chapter provides the requirements that a generic \pbt system framework should satisfy,
-guided by the critiques of the other property based testing tools from chapter \ref{pbtsystems},
-but also by the analysis of test context supporting hypotheses (section \ref{pbt}) and 
-sampling methodologies from section \ref{sec:sampling_theory}.
+This chapter provides the requirements that a generic \pbt system framework
+should satisfy, guided by the critiques from chapter \ref{pbtsystems},
+by the analysis of test context supporting hypotheses (section \ref{pbt}), and 
+sampling methodologies (section \ref{sec:sampling_theory}).
 The requirements cover:
 \begin{enumerate}
-\item the definition of the properties to be tested
-\item the organization of test cases
-\item the automatic generation of test cases
-\item scheduling the evaluation of properties over test cases
-\item reporting the results of the test
+\item the definition of the properties to be tested,
+\item the organization of test cases,
+\item the automatic generation of test cases,
+\item scheduling the evaluation of properties over test cases,
+\item reporting the results of the test.
 \end{enumerate}
 \noindent
-For the purposes of establishing a concrete set of recommendations
-(and comparison with the \GC framework design and implementation, chapter \ref{chap:source})
-it will be assumed that both the modules to be tested and
-the \pbt framework will be written in Haskell,
-but the requirements will apply to other similar functional programming languages.
+To remain concrete and be able to compare with \GC, we assume that the code
+to be tested and the framework will be written in Haskell.  However, the
+requirements should apply to other (functional) programming languages.
+In places, \emph{non-requirements} will also be explicitly spelled out.
 
 \section {Properties} \label{reqprop}
 
-Properties will be defined by the tester and passed to the test framework,
-Properties will be defined as follows:
+Properties need to be defined by the user, and usable by the framework.
 
-\begin{description}
-\item[Boolean valued]
-\item[univariate] 
-\item[defined over their domain]  (section \ref{formal_pbt});
-the function may be undefined outside of the specified property domain.
-\item[(optional) precondition] boolean valued implementation of the characteristic function for the domain with respect to the property's type.
-\end{description}
+It is generally assumed that properties are (unary) predicates which
+are total on their domain of definition (section~\ref{formal_pbt}).
+Optionally, one can also give an additional predication which is a decision
+procedure for domain-membership --- typically used when only a subset of
+a type is the natural domain of a function to be tested.
 
+It should be possible to \emph{combine} predicates, so that multiple
+properties (on the same data) can be combined.
 
-\subsection{Property Function and Specifications}
-A property is a boolean valued function
-defined over the domain of the property,
-and each property will be evaluated individually.
-Since the overall goal of the testing is 
-likely to be the validation of the modules against a 
-specification consisting of a number of properties,
-the test framework should allow test results
-over multiple properties to be combined into a single verdict.
+The requirement that properties be unary predicates does seem to be
+quite drastic.  However, if instead of requiring as input a predicate,
+instead we require an \emph{eventual} predicate --- i.e. a function
+which when saturated with all its (curried) arguments, \emph{is}
+boolean-valued, that requirement is no longer a burden.  This is what
+\QC does.
 
-\subsection{Univariate Properties}
-The general practice in Haskell and other functional languages
-is to \emph{curry} functions of multiple arguments (\cite{Haskell2010}),
-Functions are ``first class citizens'',
-so a property with multiple arguments
-can be tested by fixing the first argument and 
-then deriving the verdict on the segmented property over the remaining arguments.
-\QC, for example, supports the testing of curried multivariate predicates in this way,
-which is appropriate because only random test case generation is supported,
-and each argument for a test case is generated independently.
-
-This approach of fixing some input arguments and then generating test sets for the others
-does not allow systematic sampling methods to be used effectively,
-because the domain is not known in its entirety during test case generation.
-It is also a problem with random sampling for enumerative generators,
+However, this sequential approach to multivariate testing does not allow
+the effective use of systematic samplics methods, as the domain is not
+effectively know at the time of test case generation. This is also
+a problem with random sampling for enumerative generators,
 which rely on having the complete definition of the test domain to
 establish the probability distributions for selection.
 
-Properties should instead be defined as \emph{univariate}
-by uncurrying as required and sampling over the entire test domain.
-Uncurrying inputs needed by the property
-may prove a minor inconvenience to the test developer,
-but does not otherwise impact the implementation being tested
-(note that there is no suggestion that the modules being tested are uncurried, just the property).
+Instead, properties should be uncurried, to give access to the entire
+domain at once. Of course, there is no suggestion the the functions being
+tested shold be uncurried --- just the property.
 
-\subsection{Property Domains and Preconditions}
-The univariate parameter to the property will be specified by a type,
-but the property will not necessarily be defined over all of the values of that type.
-For example, a property might apply only to ordered lists,
-but the condition of ordered cannot be represented in the type system.
-The property must be defined over the domain required by the specification, 
-but may be otherwise undefined.
+The domain of a property is thus a single type (but which can be a 
+product). However the property may not be defined over all values of that
+type.  For example, a property might apply only to ordered lists,
+but the condition of ordered cannot (easily) be represented in the type system.
+It is acceptable for a property to be undefined outside of its domain.
+Thus we may need a \emph{precondition}, another predicate on the same
+type (as that of the property function) which represents the 
+property's domain.  \QC and other packages incorporate these preconditions
+into the definition of properties via a conditional combinator.
 
-A \emph{precondition} is a Boolean guard over the input type of the property function,
-i.e. the \emph{characteristic} function of the property's domain with respect to the input type.
-\QC and other packages incorporated these preconditions into the property definition
-using a conditional combinator,
-replacing test cases that did not satisfy the precondition with alternative values.
-The representation of properties should therefore allow for the definition of a precondition
-that can determine the validity of an input argument with respect to the specification.
+\emph{Existential variables} are, however, not a requirement for our \pbt.
+\SC and \GAST support properties that incorporate \emph{existential} variables
+with the goal of ensuring that at least (or exactly) one value exists that
+satisfies the property.  This is an appealing feature,
+but solving for the existence of a value is substantially different than
+evaluating a property, and as such is \emph{not} included as a
+requirement.
 
-\subsection{Existential Variables - Not a Requirement}
-
-\SC and \GAST supported properties that incorporated \emph{existential} variables
-with the goal of ensuring that at least (or exactly) one value exists that satisfies the property.
-This is an appealing feature,
-but solving for the existence of a value is substantially different than evaluating a property,
-and as such has \emph{not} been included as a requirement.
-
-Existential properties can instead be emulated by testing the negated property
-e.g. $\exists x . p (x) \iff \neg (\forall x . \neg p (x))$.
-The investigation of sampling strategies to support the correctness of existential properties
-would be an interesting use a \pbt framework.
+Existential properties can be emulated by testing the negated property
+i.e. $\exists x . p (x) \iff \neg (\forall x . \neg p (x))$.
 
 \section{Test Cases, Suites and Rank} \label{reqtestsuite}
 
@@ -126,11 +86,11 @@ The core functionality of a \PBT is to evaluate the property over
 a collection of test cases, here called the test suite.
 The organization of these test cases will be used 
 \begin{itemize}
-	\item organize test cases by complexity 
-	\item maintains the identity of the strata in a stratified sampling strategy
-	\item support parallel evaluation on distributed systems
-	\item support coverage analysis in reporting of results
-	\item allows verdicts to be evaluated over parts of the test cases
+    \item organize test cases by complexity 
+    \item maintains the identity of the strata in a stratified sampling strategy
+    \item support parallel evaluation on distributed systems
+    \item support coverage analysis in reporting of results
+    \item allows verdicts to be evaluated over parts of the test cases
 \end{itemize}
 
 \subsection{Test Cases}
@@ -138,8 +98,8 @@ The organization of these test cases will be used
 Each test case will consist of:
 
 \begin{description}
-	\item[datum] the value over which the property will be evaluated,
-	\item[meta-data] additional information about that value, including the rank
+    \item[datum] the value over which the property will be evaluated,
+    \item[meta-data] additional information about that value, including the rank
 \end{description} 
 \noindent
 A test framework should allow different test case data structures,
@@ -167,15 +127,15 @@ Different complexity measures have been implemented in different \pbt systems
 and the framework should allow any complexity measure as the term ranking
 as long as it is:
 \begin{enumerate}
-	\item represented by a Natural number (called the \emph{rank} of the term)
-	\item strictly positive for any defined term; $\bot$ may have rank 0 if the test program were to support such a test value (e.g. \LSC)	
-	\item $1$ for base (scalar) types such as Ints or Chars 
-	\item a partial ordering of the terms
-	\item strictly monotonic with respect to term inclusion,
-	i.e. if the term |x| is constructed including the term |y|, the complexity of |x| should be strictly greater than that of |y|
-	\item the range of the complexity measure should be positive natural numbers,
-	which will be called the \emph{rank} of the terms
-	\item a partition of the terms, with a finite number of terms for any given rank
+    \item represented by a Natural number (called the \emph{rank} of the term)
+    \item strictly positive for any defined term; $\bot$ may have rank 0 if the test program were to support such a test value (e.g. \LSC)    
+    \item $1$ for base (scalar) types such as Ints or Chars 
+    \item a partial ordering of the terms
+    \item strictly monotonic with respect to term inclusion,
+    i.e. if the term |x| is constructed including the term |y|, the complexity of |x| should be strictly greater than that of |y|
+    \item the range of the complexity measure should be positive natural numbers,
+    which will be called the \emph{rank} of the terms
+    \item a partition of the terms, with a finite number of terms for any given rank
 \end{enumerate}
 \noindent
 Note that the use of naturals as the representation of the complexity aligns
@@ -241,9 +201,9 @@ so it must be possible to store and retrieve the suite to allow the test to be r
 Automated test case generation for property based testing consists of :
 
 \begin{enumerate}
-	\item defining some sampling strategy defining the count, complexity and sampling methods to be used
-	\item the application of sampling selection criterion, possibly including preconditions, to decide which values to evaluate and in what order
-	\item building the concrete instances of test datum of the appropriate type
+    \item defining some sampling strategy defining the count, complexity and sampling methods to be used
+    \item the application of sampling selection criterion, possibly including preconditions, to decide which values to evaluate and in what order
+    \item building the concrete instances of test datum of the appropriate type
 \end{enumerate}
 
 A property based testing framework should provide a
@@ -266,9 +226,9 @@ the requirements are repeated in summary form here for convenience.
 
 Generators are functions returning lists of terms of a given type.
 \begin{description}
-	\item[scalar] generators return values of a scalar type and do not require rank as an input argument
-	\item[complexity ranked] generators produce terms of a specified rank
-	\item[parameterized] generators that accept arguments other than rank
+    \item[scalar] generators return values of a scalar type and do not require rank as an input argument
+    \item[complexity ranked] generators produce terms of a specified rank
+    \item[parameterized] generators that accept arguments other than rank
 \end{description}
 
 A generator will apply a sampling method to select and order the values to be returned.
@@ -276,20 +236,20 @@ For recursive or infinitely populated types (e.g. unlimited Integers),
 the sampling method will be applied to the values of a given complexity / rank.
 The framework should support the use of standard sampling techniques:
 \begin{enumerate}
-	\item exhaustive
-	\item random
-	\item uniform
-	\item extreme / boundary
+    \item exhaustive
+    \item random
+    \item uniform
+    \item extreme / boundary
 \end{enumerate}
 In addition, it should be possible to use alternative sampling methods in generators
 and incorporate those new methods into the test strategies in the system.
 
 The framework must accept a wide range of behaviors from generators, which may:
 \begin{enumerate}
-	\item produce a finite or unbounded sequence of values,
-	\item guarantee unique values or permit duplicates,
-	\item have a range that does or does not include all of the type's values,
-	\item order values according to their priority for testing,
+    \item produce a finite or unbounded sequence of values,
+    \item guarantee unique values or permit duplicates,
+    \item have a range that does or does not include all of the type's values,
+    \item order values according to their priority for testing,
 \end{enumerate}
 
 
@@ -558,17 +518,17 @@ the verdict of a test must be expanded beyond a simple success / fail
 to capture the possible outcomes associated with a test case:
 
 \begin{df}[Verdicts]
-	The \emph{verdict} of a test is a set of labels describing the combined results of one or more test evaluations:
-	
-	$\verdictset = \{ \fail, \nonterm, \success, \invalid, \noteval \}$ where
-	
-	\begin{description}
-		\item[$\fail$] the property does not hold over the valid test case
-		\item[$\nonterm$] the property did not evaluate in the allowed time
-		\item[$\success$] the property holds over the valid test case
-		\item[$\invalid$] the test case was not in the domain of P, so was not evaluated
-		\item[$\noteval$] the test case was not evaluated by the test (may or may not be valid)
-	\end{description}
+    The \emph{verdict} of a test is a set of labels describing the combined results of one or more test evaluations:
+    
+    $\verdictset = \{ \fail, \nonterm, \success, \invalid, \noteval \}$ where
+    
+    \begin{description}
+        \item[$\fail$] the property does not hold over the valid test case
+        \item[$\nonterm$] the property did not evaluate in the allowed time
+        \item[$\success$] the property holds over the valid test case
+        \item[$\invalid$] the test case was not in the domain of P, so was not evaluated
+        \item[$\noteval$] the test case was not evaluated by the test (may or may not be valid)
+    \end{description}
 \end{df}
 
 Not all verdicts will be possible under all models of evaluation.
@@ -580,8 +540,8 @@ These verdicts are actually in a precedence order that can be used when combinin
 the verdicts of two result sets,
 e.g. a fail verdict overrides non-termination, non-termination overrides success, etc.
 \begin{df}[Verdict Monoid]
-	identity : \noteval \\
-	concat : v1 \^ v2 = greater of the two\\
+    identity : \noteval \\
+    concat : v1 \^ v2 = greater of the two\\
 \end{df}
 
 The result container consists of the verdict and evaluations of each test case.
@@ -591,10 +551,10 @@ and provides for low overhead evaluation strategies (such as map),
 but also allows the result set to be monoidal in both the container and the verdict.
 
 \begin{df}[Result Class]
-	defines a labelled partioned container as defined for the test suite,
-	but the monoid is extended to include the calculation of a verdict.
-	
-	verdict is available for any part or single test result.
+    defines a labelled partioned container as defined for the test suite,
+    but the monoid is extended to include the calculation of a verdict.
+    
+    verdict is available for any part or single test result.
 \end{df}
 Note that while there may be some confusion in a Haskell implementation
 caused by having verdicts at both the test case and test suite levels,
