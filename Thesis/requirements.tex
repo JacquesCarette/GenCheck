@@ -80,18 +80,16 @@ requirement.
 Existential properties can be emulated by testing the negated property
 i.e. $\exists x . p (x) \iff \neg (\forall x . \neg p (x))$.
 
-\section{Test Cases, Suites and Rank} \label{reqtestsuite}
+\section{Organizing test cases} \label{reqtestsuite}
 
-The core functionality of a \PBT is to evaluate the property over 
-a collection of test cases, here called the test suite.
-The organization of these test cases will be used 
-\begin{itemize}
-    \item organize test cases by complexity 
-    \item maintains the identity of the strata in a stratified sampling strategy
-    \item support parallel evaluation on distributed systems
-    \item support coverage analysis in reporting of results
-    \item allows verdicts to be evaluated over parts of the test cases
-\end{itemize}
+A core feature of a \pbt is to evaluate properies over a
+collection of test cases, i.e. a \emph{test suite}.
+Attributes of test cases can be useful to organize the test suite.
+For example, complexity and strata can be used to order sampling
+strategies. Independence can be used for parallel evaluat on distributed
+systems. Meta-data about the functions being test can be used to support
+coverage analysis in the reporting of results. Lastly, attributes can
+be used as a filter to report verdicts on just part of the test cases.
 
 \subsection{Test Cases}
 
@@ -102,62 +100,53 @@ Each test case will consist of:
     \item[meta-data] additional information about that value, including the rank
 \end{description} 
 \noindent
-A test framework should allow different test case data structures,
-storing different types of meta-data,
+A test framework should allow different representations of test cases,
+to enable attaching different kinds of meta-data,
 by defining a standard interface to access the datum.
-This would allow customized test system components,
-to share meta-data without requiring other components to be modified.
 
 \subsection{Rank as a Complexity Measure }\label{sub:reqrank}
 
-As discussed throughout this thesis,
-term complexity plays an important role
-in the selection, generation and evaluation priority of test cases,
-particularly for recursive data types.
-Using a complexity measure to partition the type's values into finite subsets
-supports the automatic generation of test cases
-but also ties the test results back to the supporting uniformity and regularity hypotheses
-required for a formal argument of validity.
-The complexity measure, which will be called the \emph{rank} of the term,
-should be a mandatory part of the meta-data for a test case,
-and will play an important role in generation, evaluation and reporting.
+As mentioned before, term complexity plays an important role
+in the selection, generation and evaluation priority of test cases.
+Using a complexity measure to partition values into finite subsets
+ties test results back to uniformity and regularity hypotheses,
+required for arguing validity of the testing process.
 
-Different complexity measures have been implemented in different \pbt systems
-(as discussed in section \ref{complexgen}),
-and the framework should allow any complexity measure as the term ranking
-as long as it is:
+Thus all terms should come with some complexity measure, which we will call
+the \emph{rank} of the term. We will thus \textbf{require} that a rank
+be available as test case meta-data.
+
+Recall that section~\ref{complexgen} discussed the various complexity measures
+implemented in the systems we surveyed. We will allow any complexity
+measure as a ranking as long as it satisfies the followind requirements:
 \begin{enumerate}
-    \item represented by a Natural number (called the \emph{rank} of the term)
-    \item strictly positive for any defined term; $\bot$ may have rank 0 if the test program were to support such a test value (e.g. \LSC)    
-    \item $1$ for base (scalar) types such as Ints or Chars 
-    \item a partial ordering of the terms
-    \item strictly monotonic with respect to term inclusion,
-    i.e. if the term |x| is constructed including the term |y|, the complexity of |x| should be strictly greater than that of |y|
-    \item the range of the complexity measure should be positive natural numbers,
-    which will be called the \emph{rank} of the terms
+    \item is in $\mathbb{N}$
+    \item $>0$ for any defined term; $\bot$ may have rank 0 if the test program supports such test values (e.g. \LSC)    
+    \item $1$ for base types (such as |Int| or |Char|)
+    \item induces a partial ordering of the terms
+    \item is strictly monotonic with respect to term inclusion,
+    i.e. if the term |x| contains the term |y|, the rank of |x| should be strictly greater than that of |y|
     \item a partition of the terms, with a finite number of terms for any given rank
 \end{enumerate}
-\noindent
-Note that the use of naturals as the representation of the complexity aligns
-the test results to inductive proofs used in proving program correctness.
+\noindent Most of these requirements are straightforward. The only non-trivial
+requirement is the last one, that ranking induces a partition of the terms where
+each class is finite.  In practice, this is not onerous.
 
-There should be no requirement that the same complexity measure be used
-within the same test, or even the same test suite,
-to support research into complexity measures.
+The system should be mainly polymorphic over complexity measures. Certainly
+multiple complexity measures should be usable over the same test suite (unlike
+for most current \pbt which only support a single one, or a single family).
 
 \subsection{Test Suites}
 
-The test suite is an abstract container that is used to
-organize to the test cases for 
-scheduling their evaluation and / or reporting.
-Test suites should have the following attributes:
+A test suite is simple a \emph{collection} of test cases. However,
+for the purposes of scheduling test cases and reporting their verdict,
+such a collection must have a few attributes:
 
 \begin{description}
 \item[Partitioned] allow an arbitrary partitioning of the test cases
 \item[Labels] permit arbitrary labels for the parts
 \item[Ordered] maintain the order of test cases within each part
 \item[Immutable] neither test suite nor individual test cases should be modified by test evaluation
-(this is natural for any system written in Haskell in any case)
 \item[Persistent] storable and recoverable so tests can be repeated
 \item[Duplicates] duplicate test values should be allowed as separate test cases
 (thus the name ``suite'' instead of the theoretical test set from chapter \ref{chp:propertytesting})
@@ -167,11 +156,12 @@ with the partitions and labels respected by the merge.
 whether automated generators, loaded from files or otherwise provisioned.
 \end{description}
 \noindent
-These attributes are independent of the property being tested and the evaluation strategy.
+Note that 
+these attributes are independent of the property being tested and the evaluation strategy.
 
 The labeling may be based on 
 any meta-data associated with the stratification strategy,
-but should generally include the rank of the test cases within the part.
+but generally include the rank of the test cases within the part.
 
 A test suite can be identified as \emph{valid} for a property if 
 all of its test cases are known to be valid for a property test,
@@ -180,20 +170,20 @@ This attribute of a property / test suite pair
 should be accepted by the framework and made available to the evaluation engine
 to determine if the property's precondition should be applied before evaluating test cases.
 
-
 \subsection{Multiple Properties and Shared Test Suites}
 
-Properties with a common input argument type
-should be able to use the same test cases to avoid the overhead of regenerating cases.
+Properties over a common type
+should be able to use the same test cases, to avoid the overhead of regenerating them.
 This is a weakness of \QC et al:
-test cases are generated during test execution,
+test cases are generated during test execution, and
 a new test suite is generated with every test pass
-(the test cases can only be shared by testing the conjunction of the properties).
-Sharing test suites requires they are accessible from outside the context of a single property test,
-possibly by scheduling multiple properties for evaluation within the same test.
+(test cases can only be shared by testing a conjunction of properties).
+Sharing test suites requires them to be accessible from outside the context of
+a single property test.  This enables scheduling multiple properties to be
+evaluated within the running of a single test.
 
-Repeatability is also an important requirement for testing,
-so it must be possible to store and retrieve the suite to allow the test to be repeated.
+Repeatability is also an important requirement, thus
+it must be possible to store and retrieve a test suite to allow tests to be repeated.
 
 
 \section{Automated Test Generation} \label{reqtestgen}
